@@ -1,13 +1,12 @@
-// Place "use client" at the very top of the file
 "use client"; // Mark this as a Client Component
 
-import { metadata } from "./metadata"; // Import from the new server-side file
-import "./css/style.css";
-import { Inter } from "next/font/google";
-import localFont from "next/font/local";
-import Header from "@/components/ui/header";
-import { usePathname } from "next/navigation"; // Client-side hook
+import "./css/style.css"; // Custom CSS file
+import { Inter } from "next/font/google"; // Google Font (Inter)
+import localFont from "next/font/local"; // Local Fonts
+import Header from "@/components/ui/header"; // Custom Header Component
+import { usePathname } from "next/navigation"; // Client-side hook to get current path
 
+// Load fonts
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -46,9 +45,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname(); // Get current path
 
-  // Determine if the header should be shown based on the pathname
+  // Conditional rendering based on pathname
   const shouldShowHeader =
     pathname === "/" ||
     pathname.startsWith("/signin") ||
@@ -61,8 +60,9 @@ export default function RootLayout({
         className={`${inter.variable} ${nacelle.variable} bg-gray-950 font-inter text-base text-gray-200 antialiased`}
       >
         <div className="flex min-h-screen flex-col overflow-hidden supports-[overflow:clip]:overflow-clip">
-           {shouldShowHeader && <Header />}
-          {children}
+          {shouldShowHeader && <Header />}{" "}
+          {/* Conditionally render the header */}
+          {children} {/* Render the page content */}
         </div>
       </body>
     </html>
