@@ -51,7 +51,7 @@ export default function StartTherapy() {
 
   return (
     <div
-      className="flex min-h-screen overflow-hidden bg-black" // Added overflow-hidden here
+      className="flex min-h-screen overflow-hidden bg-black"
       style={{
         background: "linear-gradient(to bottom, #000 40%, #1e293b 45%)",
       }}
@@ -107,7 +107,7 @@ export default function StartTherapy() {
           {exercises.map((exercise, idx) => (
             <div
               key={idx}
-              className="group relative w-full h-[400px] rounded-xl shadow-lg bg-slate-950 transform transition-transform hover:scale-105 duration-300"
+              className="group relative w-full h-[400px] rounded-xl shadow-lg bg-slate-950 transform transition-transform hover:scale-105 duration-300 border border-white" // Added border-4 and border-white
             >
               {/* Card Inner */}
               <div
