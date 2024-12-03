@@ -48,7 +48,7 @@ export function Sidebar({
     },
     {
       path: "/recommendations",
-      label: "Get Advice",
+      label: "Fitness Assistant",
       icon: <RobotOutlined />,
     },
     {
