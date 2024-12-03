@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import Link from "next/link"; // Use Next.js Link for navigation
+import { usePathname } from "next/navigation"; // Use usePathname for App Router
 import {
   DashboardOutlined,
   RobotOutlined,
@@ -20,8 +21,7 @@ export function Sidebar({
   setSidebarOpen,
   variant = "default",
 }: SidebarProps) {
-  const location = useLocation();
-  const { pathname } = location;
+  const pathname = usePathname(); // Use usePathname for App Router
 
   const trigger = useRef<HTMLButtonElement | null>(null);
   const sidebar = useRef<HTMLDivElement | null>(null);
@@ -74,9 +74,9 @@ export function Sidebar({
       >
         {/* Sidebar Header */}
         <div className="flex justify-between mb-10 ml-10">
-          <NavLink end to="/" className="block">
+          <Link href="/" passHref>
             <Logo />
-          </NavLink>
+          </Link>
         </div>
 
         {/* Links */}
@@ -84,17 +84,18 @@ export function Sidebar({
           <ul>
             {menuItems.map((item) => (
               <li key={item.path} className="mb-2">
-                <NavLink
-                  to={item.path}
-                  className={`flex items-center p-3 rounded-md text-lg font-medium transition-colors duration-150 ${
-                    pathname === item.path
-                      ? "bg-slate-800 text-white"
-                      : "text-gray-400"
-                  } hover:bg-opacity-90 hover:text-white hover:shadow-md`}
-                >
-                  <span className="mr-3 text-xl">{item.icon}</span>
-                  <span className="whitespace-nowrap">{item.label}</span>
-                </NavLink>
+                <Link href={item.path} passHref>
+                  <div
+                    className={`flex items-center p-3 rounded-md text-lg font-medium transition-colors duration-150 ${
+                      pathname === item.path
+                        ? "bg-slate-800 text-white"
+                        : "text-gray-400"
+                    } hover:bg-opacity-90 hover:text-white hover:shadow-md`}
+                  >
+                    <span className="mr-3 text-xl">{item.icon}</span>
+                    <span className="whitespace-nowrap">{item.label}</span>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
@@ -102,15 +103,14 @@ export function Sidebar({
 
         {/* Logout */}
         <div className="mt-auto">
-          <NavLink
-            to="/logout"
-            className="flex items-center p-3 rounded-md text-lg font-medium text-red-500 hover:bg-opacity-90 hover:text-white hover:shadow-md"
-          >
-            <span className="mr-3 text-xl">
-              <LogoutOutlined />
-            </span>
-            Logout
-          </NavLink>
+          <Link href="/logout" passHref>
+            <div className="flex items-center p-3 rounded-md text-lg font-medium text-red-500 hover:bg-opacity-90 hover:text-white hover:shadow-md">
+              <span className="mr-3 text-xl">
+                <LogoutOutlined />
+              </span>
+              Logout
+            </div>
+          </Link>
         </div>
       </div>
     </div>
