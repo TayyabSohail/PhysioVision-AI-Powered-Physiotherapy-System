@@ -58,7 +58,7 @@ export default function StartTherapy() {
     >
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <div className="flex-1 container mx-auto px-10 py-8 bg-black">
+      <div className="flex-1 container mx-auto px-10 py-[1.4%] bg-black">
         {/* Top Section: Video and Intro */}
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Intro Text */}
