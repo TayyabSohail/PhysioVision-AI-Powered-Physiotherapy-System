@@ -87,14 +87,16 @@ export default function StartTherapy() {
             </div>
           </div>
 
-          <div className="relative overflow-hidden w-full md:w-1/3 lg:w-80">
+          <div className="relative overflow-hidden w-full md:w-1/2 lg:w-2/3 xl:w-3/4 mt-[-90px]">
+            {" "}
+            {/* Adjust margin-top */}
             <video
               src="/videos/vision.mp4"
               autoPlay
               loop
               muted
               playsInline
-              className="w-full h-full object-cover object-top "
+              className="w-full h-auto object-cover object-top"
             >
               Your browser does not support the video tag.
             </video>
@@ -102,7 +104,7 @@ export default function StartTherapy() {
         </div>
 
         {/* Bottom Section: Exercise Cards */}
-        <div className="!mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 p-10 w-full rounded-lg max-w-screen-4xl mx-auto">
+        <div className="!mt-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10  w-full rounded-lg max-w-screen-4xl mx-auto">
           {exercises.map((exercise, idx) => (
             <div
               key={idx}
