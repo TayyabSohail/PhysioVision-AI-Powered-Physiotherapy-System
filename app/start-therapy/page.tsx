@@ -87,15 +87,14 @@ export default function StartTherapy() {
             </div>
           </div>
 
-          {/* Vision Video */}
-          <div className="relative overflow-hidden w-full md:w-2/3 lg:w-full">
+          <div className="relative overflow-hidden w-full md:w-1/3 lg:w-80">
             <video
               src="/videos/vision.mp4"
               autoPlay
               loop
               muted
               playsInline
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-top "
             >
               Your browser does not support the video tag.
             </video>
