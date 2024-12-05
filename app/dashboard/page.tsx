@@ -75,7 +75,7 @@ export default function Dashboard() {
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         <div className="flex-1 container mx-auto px-4 py-8">
-          <h1 className="text-3xl text-left font-semibold text-white mb-8 tracking-tight">
+          <h1 className="text-4xl text-center font-semibold text-white mb-8 tracking-tight">
             Welcome to PhysioVision
           </h1>
 

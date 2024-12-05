@@ -133,7 +133,7 @@ export default function FitnessAssistant() {
               />
               <button
                 onClick={handleSend}
-                className="px-6 py-3 bg-[#7a73c1] text-white rounded-md hover:bg-[#6b65b1] transition-all"
+                className="px-6 py-3 bg-[#42499b] text-white rounded-md hover:bg-[#42499b] transition-all"
               >
                 Send
               </button>

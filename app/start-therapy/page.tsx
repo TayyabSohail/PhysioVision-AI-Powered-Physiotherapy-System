@@ -88,14 +88,14 @@ export default function StartTherapy() {
           </div>
 
           {/* Vision Video */}
-          <div className="md:w-1/3 relative overflow-hidden">
+          <div className="relative overflow-hidden w-full md:w-2/3 lg:w-full">
             <video
               src="/videos/vision.mp4"
               autoPlay
               loop
               muted
               playsInline
-              className="w-full h md:h-auto object-cover object-center"
+              className="w-full h-full object-cover object-center"
             >
               Your browser does not support the video tag.
             </video>
@@ -107,7 +107,7 @@ export default function StartTherapy() {
           {exercises.map((exercise, idx) => (
             <div
               key={idx}
-              className="group relative w-full h-[400px] rounded-xl shadow-lg bg-slate-950 transform transition-transform hover:scale-105 duration-300 border border-white" // Added border-4 and border-white
+              className="group relative w-full h-[400px] rounded-xl shadow-lg bg-slate-800 transform transition-transform hover:scale-105 duration-300 border border-white" // Added border-4 and border-white
             >
               {/* Card Inner */}
               <div
@@ -121,7 +121,7 @@ export default function StartTherapy() {
               >
                 {/* Card Front */}
                 <div
-                  className="absolute w-full h-full p-6 text-white rounded-xl bg-slate-900 backface-hidden"
+                  className="absolute w-full h-full p-6 text-white rounded-xl bg-slate-800 backface-hidden"
                   style={{
                     backfaceVisibility: "hidden",
                   }}
