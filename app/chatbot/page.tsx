@@ -60,7 +60,7 @@ export default function FitnessAssistant() {
         }`}
       >
         <div className="flex flex-col items-center justify-center min-h-screen w-full px-8">
-          <div className="w-full max-w-full bg-slate-950 p-8 rounded-lg">
+          <div className="w-2/3 max-w-full bg-slate-950 p-8 rounded-lg">
             {/* Header */}
             <div className="text-center text-4xl font-semibold text-gray-100 tracking-wide">
               Fitness Assistant
@@ -94,15 +94,15 @@ export default function FitnessAssistant() {
                 >
                   {/* Icon */}
                   {message.type === "user" ? (
-                    <FaUserCircle className="text-[#7a73c1] text-3xl" /> // User icon for user messages
+                    <FaUserCircle className="text-[#7a73c1] text-3xl" />
                   ) : (
-                    <FaRobot className="text-gray-400 text-3xl" /> // Bot icon
+                    <FaRobot className="text-gray-400 text-3xl" />
                   )}
 
                   {/* Message */}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col max-w-full">
                     <div
-                      className={`max-w-[85%] px-6 py-4 rounded-lg text-lg ${
+                      className={`max-w-[85%] px-4 py-2 rounded-lg text-lg break-words ${
                         message.type === "user"
                           ? "bg-gradient-to-r from-[#7a73c1] to-[#7a73c1] text-white"
                           : "bg-gray-800 text-gray-300"
@@ -121,19 +121,18 @@ export default function FitnessAssistant() {
                 </div>
               ))}
             </div>
-            {/* Input Section */}
-            <div className="p-3 bg-slate-950 flex gap-4 items-center w-full">
+            <div className="p-3 bg-slate-950 flex gap-2 items-center w-full">
               <input
                 type="text"
                 placeholder="Ask me for fitness recommendations..."
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={handleKeyDown} // Trigger the send function on 'Enter'
-                className="w-full p-4 rounded-md text-gray-900 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-[#7a73c1]"
+                className="w-full p-2 text-sm rounded-md text-gray-900 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-[#7a73c1] overflow-hidden text-ellipsis"
               />
               <button
                 onClick={handleSend}
-                className="px-6 py-3 bg-[#42499b] text-white rounded-md hover:bg-[#42499b] transition-all"
+                className="px-4 py-2 text-sm bg-[#42499b] text-white rounded-md hover:bg-[#42499b] transition-all"
               >
                 Send
               </button>
