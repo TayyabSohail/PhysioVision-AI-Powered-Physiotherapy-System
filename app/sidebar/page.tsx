@@ -47,7 +47,7 @@ export function Sidebar({
       icon: <DashboardOutlined />,
     },
     {
-      path: "/recommendations",
+      path: "/chatbot",
       label: "Fitness Assistant",
       icon: <RobotOutlined />,
     },
