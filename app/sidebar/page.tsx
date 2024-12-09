@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -36,28 +36,28 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
   return (
     <div
-      className={`h-screen bg-slate-900 transition-transform duration-300 ease-in-out p-4 flex flex-col ${
+      className={`bg-slate-900 transition-transform duration-300 ease-in-out p-4 flex flex-col rounded-lg ${
         sidebarOpen ? "translate-x-0" : "-translate-x-64"
-      } lg:translate-x-0 lg:w-64`}
+      } lg:translate-x-0 overflow-hidden`}
     >
       {/* Sidebar Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Link href="/" passHref>
           <Logo />
         </Link>
       </div>
 
       {/* Menu Items */}
-      <ul className="flex-1 space-y-4">
+      <ul className="flex-1 space-y-3">
         {menuItems.map((item) => (
           <li key={item.path}>
             <Link href={item.path} passHref>
               <div
-                className={`flex items-center p-3 rounded-md text-lg font-medium cursor-pointer ${
+                className={`flex items-center p-3 rounded-md text-lg font-medium cursor-pointer transition-all duration-200 ease-in-out ${
                   pathname === item.path
                     ? "bg-slate-800 text-white"
                     : "text-gray-400"
-                } hover:bg-opacity-90 hover:text-white hover:shadow-md transition-all duration-200 ease-in-out`}
+                } hover:bg-opacity-90 hover:text-white hover:shadow-md`}
               >
                 <span className="mr-2 text-xl">{item.icon}</span>
                 {item.label}

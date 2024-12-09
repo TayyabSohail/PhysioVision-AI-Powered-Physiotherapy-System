@@ -49,10 +49,11 @@ export default function FitnessAssistant() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-200 flex">
+    <div className="min-h-screen bg-slate-950 text-gray-200 flex overflow-hidden">
+      {" "}
+      {/* Main container */}
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
       {/* Main Content */}
       <div
         className={`flex-grow transition-all duration-300 ${
@@ -79,7 +80,7 @@ export default function FitnessAssistant() {
             </div>
 
             {/* Chat Area */}
-            <div className="h-[60vh] overflow-y-auto p-6 space-y-6 bg-slate-950 w-full max-w-full">
+            <div className="h-[55vh] overflow-y-auto p-6 space-y-6 bg-slate-950 w-full max-w-full">
               {messages.length === 0 && (
                 <p className="text-center text-gray-500 italic">
                   Ready to level up your fitness journey? 🚀 Let's get started!

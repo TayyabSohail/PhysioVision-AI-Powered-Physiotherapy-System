@@ -70,7 +70,7 @@ export default function Dashboard() {
 
   return (
     <BrowserRouter>
-      <div className="flex">
+      <div className="flex overflow-hidden">
         {/* Sidebar */}
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
@@ -82,7 +82,7 @@ export default function Dashboard() {
           {/* Cards Layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             {/* Card 1: Patient Info */}
-            <div className="bg-slate-800 text-white p-6 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
+            <div className="bg-slate-800 text-white p-4 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Patient Info
               </h2>
@@ -112,7 +112,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 2: Recovery Plan */}
-            <div className="bg-slate-800 text-white p-6 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
+            <div className="bg-slate-800 text-white p-4 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Recovery Plan
               </h2>
@@ -133,7 +133,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 3: Progress Graph */}
-            <div className="bg-slate-800 text-white p-6 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
+            <div className="bg-slate-800 text-white p-4 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Progress & Graphs
               </h2>
@@ -162,7 +162,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 4: Exercise & Nutrition Progress */}
-            <div className="bg-slate-800 text-white p-6 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
+            <div className="bg-slate-800 text-white p-4 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Exercise & Nutrition Progress
               </h2>
@@ -176,21 +176,40 @@ export default function Dashboard() {
               </div>
               <div className="mt-6">
                 {/* Circular Progress */}
-                <div className="flex justify-around">
-                  <div className="flex flex-col items-center">
-                    <CircleProgressWithGradient progress={70} />
-                    <p className="mt-2 text-sm">Exercise Completion</p>
+                <div className="flex justify-around space-x-4 p-4 bg-slate-800 rounded-lg shadow-md">
+                  {/* Exercise Completion */}
+                  <div className="flex flex-col items-center w-1/2">
+                    <p className="text-sm font-semibold mb-2">
+                      Exercise Completion
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className="bg-blue-500 h-4 rounded-full transition-all"
+                        style={{ width: "70%" }}
+                      ></div>
+                    </div>
+                    <p className="mt-2 text-sm text-white">70%</p>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <CircleProgressWithGradient progress={50} />
-                    <p className="mt-2 text-sm">Nutrition Consistency</p>
+
+                  {/* Nutrition Consistency */}
+                  <div className="flex flex-col items-center w-1/2">
+                    <p className="text-sm font-semibold mb-2">
+                      Nutrition Consistency
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className="bg-green-500 h-4 rounded-full transition-all"
+                        style={{ width: "50%" }}
+                      ></div>
+                    </div>
+                    <p className="mt-2 text-sm text-white">50%</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* New Card 5: Recent Activity */}
-            <div className="bg-slate-800 text-white p-6 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
+            <div className="bg-slate-800 text-white p-4 rounded-lg shadow-xl hover:bg-slate-700 transition-transform duration-300 transform hover:scale-105 text-left">
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Recent Activity
               </h2>

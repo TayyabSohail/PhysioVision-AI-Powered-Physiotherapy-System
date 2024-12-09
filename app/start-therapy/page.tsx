@@ -104,11 +104,11 @@ export default function StartTherapy() {
         </div>
 
         {/* Bottom Section: Exercise Cards */}
-        <div className="!mt-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10  w-full rounded-lg max-w-screen-4xl mx-auto">
+        <div className="!mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full rounded-lg max-w-screen-4xl mx-auto">
           {exercises.map((exercise, idx) => (
             <div
               key={idx}
-              className="group relative w-full h-[400px] rounded-xl shadow-lg bg-slate-800 transform transition-transform hover:scale-105 duration-300 border border-white" // Added border-4 and border-white
+              className="group relative w-[250px] h-[300px] rounded-xl shadow-lg bg-slate-800 transform transition-transform hover:scale-105 duration-300 border border-white"
             >
               {/* Card Inner */}
               <div
@@ -122,23 +122,28 @@ export default function StartTherapy() {
               >
                 {/* Card Front */}
                 <div
-                  className="absolute w-full h-full p-6 text-white rounded-xl bg-slate-800 backface-hidden"
+                  className="absolute w-full h-full p-4 text-white rounded-xl bg-slate-800 backface-hidden"
                   style={{
                     backfaceVisibility: "hidden",
                   }}
                 >
-                  <div className="w-full h-[60%] overflow-hidden rounded-lg">
+                  {/* Adjusted Image Section */}
+                  <div className="w-full h-[60%] overflow-hidden rounded-lg flex justify-center items-center">
                     <img
                       src={exercise.image}
                       alt={exercise.name}
-                      className="w-full h-full object-cover"
+                      className="object-contain w-full h-full"
                     />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-200 mt-4">
+
+                  {/* Exercise Name */}
+                  <h3 className="text-lg font-semibold text-gray-200 mt-2 mb-1">
                     {exercise.name}
                   </h3>
+
+                  {/* Start Now Button */}
                   <button
-                    className="mt-4 bg-red-900 text-white text-sm px-4 py-2 rounded-md hover:bg-red-800"
+                    className="mt-2 bg-red-900 text-white text-sm px-3 py-1 rounded-md hover:bg-red-800"
                     onClick={() => handleFlip(idx)}
                   >
                     Start Now
