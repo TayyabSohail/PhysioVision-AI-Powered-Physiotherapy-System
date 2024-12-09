@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link"; // Use Next.js Link for navigation
-import { usePathname } from "next/navigation"; // Use usePathname for App Router
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   DashboardOutlined,
   RobotOutlined,
@@ -13,105 +13,70 @@ import Logo from "@/components/ui/logo";
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  variant?: "default" | "v2";
 }
 
-export function Sidebar({
-  sidebarOpen,
-  setSidebarOpen,
-  variant = "default",
-}: SidebarProps) {
-  const pathname = usePathname(); // Use usePathname for App Router
-
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  const sidebar = useRef<HTMLDivElement | null>(null);
-
-  const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
-  const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(
-    storedSidebarExpanded === null ? false : storedSidebarExpanded === "true"
-  );
+export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
+  const pathname = usePathname();
+  const [menuExpanded, setMenuExpanded] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("sidebar-expanded", sidebarExpanded.toString());
-    if (sidebarExpanded) {
-      document.querySelector("body")?.classList.add("sidebar-expanded");
-    } else {
-      document.querySelector("body")?.classList.remove("sidebar-expanded");
-    }
-  }, [sidebarExpanded]);
+    localStorage.setItem("menu-expanded", menuExpanded.toString());
+  }, [menuExpanded]);
 
   const menuItems = [
-    {
-      path: "/dashboard",
-      label: "Dashboard",
-      icon: <DashboardOutlined />,
-    },
-    {
-      path: "/chatbot",
-      label: "Fitness Assistant",
-      icon: <RobotOutlined />,
-    },
+    { path: "/dashboard", label: "Dashboard", icon: <DashboardOutlined /> },
+    { path: "/chatbot", label: "Fitness Assistant", icon: <RobotOutlined /> },
     {
       path: "/start-therapy",
       label: "Start Therapy",
       icon: <CameraOutlined />,
     },
-    {
-      path: "/contact",
-      label: "Contact Us",
-      icon: <MailOutlined />,
-    },
+    { path: "/contact", label: "Contact Us", icon: <MailOutlined /> },
   ];
 
   return (
-    <div className="min-w-fit">
-      <div
-        id="sidebar"
-        ref={sidebar}
-        className={`flex flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100vh] overflow-hidden w-64 lg:w-20 lg:sidebar-expanded:w-64 bg-slate-900 p-4 transition-all duration-200 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-64"
-        } ${variant === "v2" ? "border-r border-slate-800" : "rounded-r-2xl"}`}
-      >
-        {/* Sidebar Header */}
-        <div className="flex justify-between mb-10 ml-10">
-          <Link href="/" passHref>
-            <Logo />
-          </Link>
-        </div>
+    <div
+      className={`h-screen bg-slate-900 transition-transform duration-300 ease-in-out p-4 flex flex-col ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-64"
+      } lg:translate-x-0 lg:w-64`}
+    >
+      {/* Sidebar Header */}
+      <div className="mb-8">
+        <Link href="/" passHref>
+          <Logo />
+        </Link>
+      </div>
 
-        {/* Links */}
-        <div className="space-y-4">
-          <ul>
-            {menuItems.map((item) => (
-              <li key={item.path} className="mb-2">
-                <Link href={item.path} passHref>
-                  <div
-                    className={`flex items-center p-3 rounded-md text-lg font-medium transition-colors duration-150 ${
-                      pathname === item.path
-                        ? "bg-slate-800 text-white"
-                        : "text-gray-400"
-                    } hover:bg-opacity-90 hover:text-white hover:shadow-md`}
-                  >
-                    <span className="mr-3 text-xl">{item.icon}</span>
-                    <span className="whitespace-nowrap">{item.label}</span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Menu Items */}
+      <ul className="flex-1 space-y-4">
+        {menuItems.map((item) => (
+          <li key={item.path}>
+            <Link href={item.path} passHref>
+              <div
+                className={`flex items-center p-3 rounded-md text-lg font-medium cursor-pointer ${
+                  pathname === item.path
+                    ? "bg-slate-800 text-white"
+                    : "text-gray-400"
+                } hover:bg-opacity-90 hover:text-white hover:shadow-md transition-all duration-200 ease-in-out`}
+              >
+                <span className="mr-2 text-xl">{item.icon}</span>
+                {item.label}
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
 
-        {/* Logout */}
-        <div className="mt-auto">
-          <Link href="/logout" passHref>
-            <div className="flex items-center p-3 rounded-md text-lg font-medium text-red-500 hover:bg-opacity-90 hover:text-white hover:shadow-md">
-              <span className="mr-3 text-xl">
-                <LogoutOutlined />
-              </span>
-              Logout
-            </div>
-          </Link>
-        </div>
+      {/* Logout Button */}
+      <div className="mt-auto">
+        <Link href="/logout" passHref>
+          <div className="flex items-center p-3 rounded-md text-lg font-medium text-red-500 hover:bg-opacity-90 hover:text-white hover:shadow-md transition-all duration-200 ease-in-out">
+            <span className="mr-3 text-xl">
+              <LogoutOutlined />
+            </span>
+            Logout
+          </div>
+        </Link>
       </div>
     </div>
   );
