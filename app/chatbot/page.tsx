@@ -66,23 +66,23 @@ export default function FitnessAssistant() {
               Fitness Assistant
             </div>
             {/* Marketable Description */}
-            <div className="text-center text-lg font-medium text-gray-400 mb-4 p-4">
-              <p>Welcome to your personal Fitness Assistant!</p>
+            <div className="text-center text-lg font-medium text-gray-600 mb-4 p-4">
+              <p>Welcome to Your Fitness Assistant!</p>
               <p>
-                Get tailored exercises and nutrition advice 🤖 that fits YOUR
-                needs!
+                Discover personalized exercises and nutrition tips 🤖 just for
+                YOU!
               </p>
               <p>
-                Ready to level up your fitness journey? 🚀 Let's get started!
+                Curious about the nutrition of any food? 🍎🥦 Ask now and fuel
+                your goals!
               </p>
             </div>
+
             {/* Chat Area */}
             <div className="h-[60vh] overflow-y-auto p-6 space-y-6 bg-slate-950 w-full max-w-full">
               {messages.length === 0 && (
                 <p className="text-center text-gray-500 italic">
-                  Start chatting with{" "}
-                  <span className="text-[#7a73c1]">Fitness Assistant</span> for
-                  personalized fitness tips!
+                  Ready to level up your fitness journey? 🚀 Let's get started!
                 </p>
               )}
               {messages.map((message, index) => (
