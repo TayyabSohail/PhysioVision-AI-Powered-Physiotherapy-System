@@ -14,7 +14,7 @@ export default function FitnessAssistant() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!userInput.trim()) return;
 
     const timestamp = new Date().toLocaleTimeString([], {
@@ -27,18 +27,41 @@ export default function FitnessAssistant() {
       { type: "user", content: userInput, timestamp },
     ]);
 
-    setTimeout(() => {
+    setUserInput("");
+
+    try {
+      // Make API call to backend
+      const response = await fetch("http://localhost:8000/chats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_input: userInput }),
+      });
+
+      // Handle response
+      const data = await response.json();
+      const botMessage = data.response; // Assuming the response has a 'response' field
+
       setMessages((prev) => [
         ...prev,
         {
           type: "bot",
-          content: `Here’s an exercise tailored for "${userInput}"!`,
+          content: botMessage,
           timestamp,
         },
       ]);
-    }, 1000);
-
-    setUserInput("");
+    } catch (error) {
+      console.error("Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          content: "Oops! Something went wrong. Please try again.",
+          timestamp,
+        },
+      ]);
+    }
   };
 
   // Handle pressing 'Enter' to send a message
@@ -61,7 +84,7 @@ export default function FitnessAssistant() {
         }`}
       >
         <div className="flex flex-col items-center justify-center min-h-screen w-full px-8">
-          <div className="w-2/3 max-w-full bg-slate-950 p-8 rounded-lg">
+          <div className="w-full max-w-3xl bg-slate-950 p-8 rounded-lg">
             {/* Header */}
             <div className="text-center text-4xl font-semibold text-gray-100 tracking-wide">
               Fitness Assistant
