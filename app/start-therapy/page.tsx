@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter
 import { Sidebar } from "../sidebar/page";
 
 interface Exercise {
@@ -10,6 +11,7 @@ interface Exercise {
 }
 
 export default function StartTherapy() {
+  const router = useRouter(); // Initialize router
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>(
     {}
@@ -42,11 +44,15 @@ export default function StartTherapy() {
     },
   ];
 
-  const handleFlip = (idx: number) => {
-    setFlippedCards((prev) => ({
-      ...prev,
-      [idx]: !prev[idx],
-    }));
+  const handleFlip = (idx: number, exerciseName: string) => {
+    if (exerciseName === "Squats") {
+      router.push("/squats_vision"); // Navigate to squats_vision page
+    } else {
+      setFlippedCards((prev) => ({
+        ...prev,
+        [idx]: !prev[idx],
+      }));
+    }
   };
 
   return (
@@ -144,7 +150,7 @@ export default function StartTherapy() {
                   {/* Start Now Button */}
                   <button
                     className="mt-2 bg-red-900 text-white text-sm px-3 py-1 rounded-md hover:bg-red-800"
-                    onClick={() => handleFlip(idx)}
+                    onClick={() => handleFlip(idx, exercise.name)}
                   >
                     Start Now
                   </button>
