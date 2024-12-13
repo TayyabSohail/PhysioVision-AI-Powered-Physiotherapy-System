@@ -1,4 +1,4 @@
-# PhysioVision: Bilingual Physiotherapy System
+# PhysioVision: Physiotherapy System
 
 A comprehensive bilingual physiotherapy platform designed to revolutionize physiotherapy and wellness. This project combines advanced technologies to deliver dynamic exercise and nutrition recommendations through an adaptive RAG-based chatbot and real-time posture correction via computer vision.
 
