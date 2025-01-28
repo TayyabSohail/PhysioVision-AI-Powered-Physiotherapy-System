@@ -72,7 +72,13 @@ export default function SquatVision() {
 
       <div className="flex-1 container mx-auto px-10 py-[1.4%] bg-black">
         {/* Navbar Placeholder */}
-        <div className="h-16 w-full bg-gray-800 rounded-lg mb-4"></div>
+        <div className="h-16 w-full bg-gray-800 rounded-lg mb-4">
+          <h1 className="text-4xl font-bold text-white text-center">
+            Squats Exercise
+          </h1>
+        </div>
+
+        {/* Page Heading */}
 
         {/* Video Feed or Countdown */}
         <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-900 rounded-lg overflow-hidden">
@@ -101,7 +107,7 @@ export default function SquatVision() {
             <div className="bg-gray-800 p-4 rounded-lg">
               <p className="text-lg">Stage: {stage}</p>
             </div>
-            {/*
+            {/* 
             <div className="bg-gray-800 p-4 rounded-lg">
               <p className="text-lg">Confidence: {(confidence * 100).toFixed(0)}%</p>
             </div>
