@@ -37,3 +37,7 @@ next-env.d.ts
 
 # contentlayer
 .contentlayer
+
+#Ignoring the virtaul environment and the pycache 
+BACKEND/APP/__pycache__/
+BACKEND/APP/myenv/
