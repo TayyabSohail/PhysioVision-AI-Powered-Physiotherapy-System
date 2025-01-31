@@ -2,10 +2,8 @@ import { POST } from "@/utils/api.service";
 
 interface LoginResponse {
   success: boolean;
-  accessToken: string;
   user: {
-    name: string;
-    email: string;
+    username: string;
   };
 }
 
@@ -28,12 +26,11 @@ export const login = async ({
       password,
     });
 
-    if (response?.success && response?.accessToken) {
-      const { user, accessToken } = response;
+    if (response?.success) {
+      const { user } = response;
 
       if (typeof window !== "undefined") {
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("username", user.username);
       }
 
       window.location.href = "/dashboard"; // Redirect after login
