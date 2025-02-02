@@ -30,6 +30,50 @@ def startup_db_client():
     collection_users =  db["Users"]   
     print("Connected to the MongoDB database!")
 
+# Pydantic model for sign-in request data
+class UserSignIn(BaseModel):
+    username: str
+    password: str
+
+@app.post("/api/signin")
+async def sign_in(user: UserSignIn):
+    # Find the user in the database
+    existing_user = collection_users.find_one({"username": user.username})
+
+    if not existing_user:
+        raise HTTPException(status_code=400, detail="Username does not exist.")
+
+    # Compare passwords directly (no hashing)
+    if user.password != existing_user["password"]:
+        raise HTTPException(status_code=400, detail="Incorrect password.")
+
+    # Return success response
+    return {
+        "message": "Login successful",
+        "success": True,
+        "user": {
+            "username": existing_user["username"]
+        }
+    }
+
+
+
+@app.on_event("startup")
+def startup_db_client():
+    global client, db, collection_users
+    client = MongoClient(uri)
+    db = client["PhysioVision"]
+    collection_users =  db["Users"]   
+    print("Connected to the MongoDB database!")
+
+
+# Pydantic model
+class UserSignUp(BaseModel):
+    name: str
+    username: str
+    email: str
+    password: str
+
 
 # Pydantic model
 class UserSignUp(BaseModel):
