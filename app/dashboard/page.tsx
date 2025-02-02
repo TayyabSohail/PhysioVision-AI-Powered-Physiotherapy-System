@@ -78,7 +78,6 @@ export default function Dashboard() {
           <h1 className="text-4xl text-center font-semibold text-white mb-8 tracking-tight">
             Welcome to PhysioVision
           </h1>
-
           {/* Cards Layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             {/* Card 1: Patient Info */}
