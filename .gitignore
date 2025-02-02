@@ -41,3 +41,6 @@ next-env.d.ts
 #Ignoring the virtaul environment and the pycache 
 BACKEND/APP/__pycache__/
 BACKEND/APP/myenv/
+
+#Private API 
+.env.local
