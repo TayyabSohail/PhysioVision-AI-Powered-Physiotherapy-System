@@ -1,7 +1,8 @@
 from pymongo import MongoClient
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, conint, confloat
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Literal
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -18,10 +19,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB client initialization
-client = MongoClient(uri)
-db = client["PhysioVision"]  # Use your actual database name here
-collection_users = db["Users"]  # Your collection for users
+client = None
+db = None
+collection_users = None
+physical_attributes_collection = None
+
+
+@app.on_event("startup")
+def startup_db_client():
+    global client, db, collection_users, physical_attributes_collection
+    client = MongoClient(uri)
+    db = client["PhysioVision"]
+    collection_users =  db["Users"]   
+    physical_attributes_collection = db["User_PhysicalAttributes"]
+    print("Connected to the MongoDB database!")
 
 # Pydantic model for sign-in request data
 class UserSignIn(BaseModel):
@@ -51,13 +62,6 @@ async def sign_in(user: UserSignIn):
 
 
 
-@app.on_event("startup")
-def startup_db_client():
-    global client, db, collection_users
-    client = MongoClient(uri)
-    db = client["PhysioVision"]
-    collection_users =  db["Users"]   
-    print("Connected to the MongoDB database!")
 
 
 # Pydantic model
@@ -66,6 +70,7 @@ class UserSignUp(BaseModel):
     username: str
     email: str
     password: str
+
 
 # User sign-up route
 @app.post("/api/signup")
@@ -79,7 +84,7 @@ async def sign_up(user: UserSignUp):
             raise HTTPException(status_code=400, detail="Username already exists. Try another one.")
         
         if existing_email:
-            raise HTTPException(status_code=400, detail="Email is already used. Try another one.")
+            raise HTTPException(status_code=400, detail="A user already registed with this email. Try another one")
 
         # Convert Pydantic model to dictionary
         user_data = user.dict()
@@ -145,3 +150,32 @@ async def update_field(user_field: UserField):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+    # Pydantic Model for Validation
+class HealthData(BaseModel):
+    username : str
+    sex: Literal["Female", "Male"]
+    age: conint(ge =0)  # Ensures age is a non-negative integer
+    height: confloat(ge=50, le=250)  # Ensures height is within range 
+    hypertension: Literal["YES", "NO"]
+    diabetes: Literal["YES", "NO"]
+    bmi: confloat(ge=10, le=50) 
+    pain_level: Literal["Acronic", "Acute"]
+    pain_category: Literal["Almost Perfect", "Immovable", "On your feet"]
+
+
+@app.post("/submit_physical_attributes")
+async def add_health_data(data: HealthData):
+    # Check if the user exists in the "users" collection
+    user = collection_users.find_one({"username": data.username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Check if the health data already exists for the user in the "physical_attributes" collection
+    existing_data = physical_attributes_collection.find_one({"username": data.username})
+    if existing_data:
+        return {"message": "Data already submitted, edit it from account settings"}
+    # Convert the Pydantic data to a dictionary and link it with the username
+    health_data = data.dict()  # Convert the Pydantic model to a dictionary
+    # Insert health data inside the "physical_attributes" collection
+    result= physical_attributes_collection.insert_one(health_data)
+    return {"message": "Health data added successfully"}
