@@ -14,7 +14,6 @@ export interface User {
   pain_category: string;
 }
 
-// ✅ Fetch user data from API
 export const fetchUserData = async (username: string): Promise<User | null> => {
   try {
     const response = await GET<{ user: User }, undefined>(
