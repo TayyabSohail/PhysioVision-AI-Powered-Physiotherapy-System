@@ -2,31 +2,81 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { login } from "@/app/api/auth.api"; // Import login function
+import { login } from "@/app/api/auth.api";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/contexts/AppContext"; // Import the correct hook
+
+interface User {
+  username: string;
+  name: string;
+}
 
 export default function SignIn() {
-  const [username, setUsername] = useState(""); // Updated to match the API
-  const [password, setPassword] = useState("");
+  const [username, setUsernameInput] = useState<string>(""); // Local state for username
+  const [password, setPassword] = useState<string>(""); // Local state for password
+  const router = useRouter();
+  const { setUsername, username: contextUsername } = useUser(); // Get username from context
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log("Attempting to sign in with username:", username);
+
     try {
       const notification = {
-        error: (msg: any) => alert(msg.message), // Replace with a proper notification system
+        error: (msg: any) => alert(msg.message),
       };
-      await login({ username, password, notification });
+
+      // Pass setUsername to login function and set the username in context
+      const user = await login({
+        username,
+        password,
+        notification,
+        setUsername: (username: string | null) => {
+          setUsername(username); // Update global context here
+        },
+      });
+
+      if (user) {
+        // Log context username before and after login
+        console.log(
+          "Context username before login:",
+          contextUsername ?? "No username set"
+        );
+
+        // Fetch user data from the dashboard API after login
+        const response = await fetch(`/api/dashboard/${user.username}`);
+        const userData: User = await response.json();
+
+        if (userData) {
+          console.log("User data fetched:", userData);
+          router.push("/dashboard");
+        } else {
+          console.error("Failed to fetch user data from the API.");
+        }
+      }
     } catch (error) {
-      console.log("Authentication failed");
+      console.error("Authentication failed:", error);
     }
   };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUsername = e.target.value;
+    setUsernameInput(newUsername); // Update local state for username
+    console.log("Username input changed:", newUsername); // Log new username
+  };
+
+  console.log(
+    "Current context username before login:",
+    contextUsername ?? "No username set"
+  ); // Log context username
 
   return (
     <section>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="py-12 md:py-20">
           <div className="pb-12 text-center">
-            <h1 className="animate-[gradient_6s_linear_infinite] bg-[linear-gradient(to_right,theme(colors.gray.200),theme(colors.indigo.200),theme(colors.gray.50),theme(colors.indigo.300),theme(colors.gray.200))] bg-[length:200%_auto] bg-clip-text font-nacelle text-3xl font-semibold text-transparent md:text-4xl">
+            <h1 className="text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-gray-200 via-indigo-200 to-gray-50 md:text-4xl">
               Welcome back
             </h1>
           </div>
@@ -46,7 +96,7 @@ export default function SignIn() {
                   placeholder="Your username"
                   required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={handleUsernameChange} // Update username on change
                 />
               </div>
               <div>
@@ -78,31 +128,14 @@ export default function SignIn() {
             <div className="mt-6 space-y-5">
               <button
                 type="submit"
-                className="btn w-full bg-gradient-to-t from-slate-800 to-indigo-500 bg-[length:100%_100%] bg-[bottom] text-white shadow-[inset_0px_1px_0px_0px_theme(colors.white/.16)] hover:bg-[length:100%_150%]"
+                className="btn w-full bg-gradient-to-t from-slate-800 to-indigo-500 text-white"
               >
-                Sign in
-              </button>
-              <div className="flex items-center gap-3 text-center text-sm italic text-gray-600 before:h-px before:flex-1 before:bg-gradient-to-r before:from-transparent before:via-gray-400/25 after:h-px after:flex-1 after:bg-gradient-to-r after:from-transparent after:via-gray-400/25">
-                or
-              </div>
-              <button className="btn relative w-full bg-gradient-to-b from-red-800 to-red-950 bg-[length:100%_100%] bg-[bottom] text-gray-300">
-                Sign In with Google
+                Sign In
               </button>
             </div>
           </form>
-          <div className="mt-6 text-center text-sm text-indigo-200/65">
-            Don't you have an account?{" "}
-            <Link className="font-medium text-indigo-500" href="/signup">
-              Sign Up
-            </Link>
-          </div>
         </div>
       </div>
-
-      <Link
-        className="text-sm text-white hover:underline"
-        href="/dashboard"
-      ></Link>
     </section>
   );
 }
