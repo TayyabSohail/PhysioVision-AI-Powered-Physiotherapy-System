@@ -1,51 +1,46 @@
+// /contexts/AppContext.tsx
 import React, {
   createContext,
   useContext,
   useState,
-  useEffect,
   ReactNode,
+  useEffect,
 } from "react";
 
-interface User {
-  name: string;
-  email: string;
+// Define the UserContextType for context state
+export interface UserContextType {
+  username: string | null;
+  setUsername: (username: string | null) => void;
 }
 
-interface UserContextType {
-  user: User | null;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
-}
-
-interface UserProviderProps {
-  children: ReactNode;
-}
-
+// Create the UserContext with an undefined default value
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [username, setUsername] = useState<string | null>(null);
 
+  // Load the username from localStorage when the component mounts
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername); // Set username from localStorage if it exists
     }
-  }, []);
+  }, []); // This effect runs once when the component mounts
 
+  // Log the username whenever it changes (for debugging)
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    }
-  }, [user]);
+    console.log("Username has been updated:", username);
+  }, [username]);
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ username, setUsername }}>
       {children}
     </UserContext.Provider>
   );
 };
 
-export const useUser = () => {
+// Custom hook to access the UserContext
+export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (!context) {
     throw new Error("useUser must be used within a UserProvider");

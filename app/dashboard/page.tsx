@@ -1,16 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { Sidebar } from "../sidebar/page";
+import { useUser } from "@/contexts/AppContext";
+import { fetchUserData, User } from "../api/dashboard.api";
 
-export default function Dashboard() {
+const Dashboard: React.FC = () => {
+  const { username } = useUser(); // Use username from context
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userData, setUserData] = useState<User | null>(null); // Ensuring user data has the correct type
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
-    console.log("Sidebar Open State: ", sidebarOpen); // Log state change
   };
+
+  // Fetch user data when the component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      if (username) {
+        // Check if username exists
+        const data = await fetchUserData(username); // Fetch data using username
+        setUserData(data); // Store the fetched data
+      }
+    };
+
+    fetchData();
+  }, [username]); // Effect will rerun when username changes
 
   // Function to generate circular progress with gradient and attractive styles
   const CircleProgressWithGradient = ({ progress }: { progress: number }) => {
@@ -78,6 +94,7 @@ export default function Dashboard() {
           <h1 className="text-4xl text-center font-semibold text-white mb-8 tracking-tight">
             Welcome to PhysioVision
           </h1>
+
           {/* Cards Layout */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             {/* Card 1: Patient Info */}
@@ -87,25 +104,26 @@ export default function Dashboard() {
               </h2>
               <div className="space-y-2">
                 <p className="text-sm">
-                  <strong>Name:</strong> John Doe
+                  <strong>Name:</strong> {userData?.name ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>Email:</strong> john@example.com
+                  <strong>Email:</strong> {userData?.email ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>Focus Area:</strong> Knee
+                  <strong>Focus Area:</strong> {userData?.sex ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>Problem/Pain Type:</strong> Chronic & Acute
+                  <strong>Mobility:</strong> {userData?.pain_category ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>BMI:</strong> 24.5
+                  <strong>BMI:</strong> {userData?.bmi ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>Weight:</strong> 75 kg
+                  <strong>Weight:</strong>{" "}
+                  {userData?.age ? userData.age * 0.9 : "N/A"} kg
                 </p>
                 <p className="text-sm">
-                  <strong>Height:</strong> 175 cm
+                  <strong>Height:</strong> {userData?.height ?? "N/A"} cm
                 </p>
               </div>
             </div>
@@ -214,13 +232,7 @@ export default function Dashboard() {
               </h2>
               <div className="space-y-2">
                 <p className="text-sm">
-                  <strong>Latest Exercise Completed:</strong> Knee Stretch
-                </p>
-                <p className="text-sm">
-                  <strong>Nutrition Consistency:</strong> 90%
-                </p>
-                <p className="text-sm">
-                  <strong>Recent Report:</strong> No major changes
+                  No activity yet, start your recovery journey!
                 </p>
               </div>
             </div>
@@ -229,4 +241,6 @@ export default function Dashboard() {
       </div>
     </BrowserRouter>
   );
-}
+};
+
+export default Dashboard;
