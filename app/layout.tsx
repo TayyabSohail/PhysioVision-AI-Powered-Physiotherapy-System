@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"; // Google Font (Inter)
 import localFont from "next/font/local"; // Local Fonts
 import Header from "@/components/ui/header"; // Custom Header Component
 import { usePathname } from "next/navigation"; // Client-side hook to get current path
+import { UserProvider } from "@/contexts/AppContext"; // Import UserProvider
 
 // Load fonts
 const inter = Inter({
@@ -60,9 +61,9 @@ export default function RootLayout({
         className={`${inter.variable} ${nacelle.variable} bg-gray-950 font-inter text-base text-gray-200 antialiased`}
       >
         <div className="flex min-h-screen flex-col overflow-hidden supports-[overflow:clip]:overflow-clip">
-          {shouldShowHeader && <Header />}{" "}
-          {/* Conditionally render the header */}
-          {children} {/* Render the page content */}
+          {shouldShowHeader && <Header />}
+          {/* Wrap entire app with UserProvider */}
+          <UserProvider>{children}</UserProvider>
         </div>
       </body>
     </html>
