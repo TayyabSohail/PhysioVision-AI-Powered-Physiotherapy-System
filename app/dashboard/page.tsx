@@ -9,7 +9,7 @@ import { fetchUserData, User } from "../api/dashboard.api";
 const Dashboard: React.FC = () => {
   const { username } = useUser(); // Use username from context
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userData, setUserData] = useState<User | null>(null); // Ensuring user data has the correct type
+  const [userData, setUserData] = useState<User | null>(null);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
