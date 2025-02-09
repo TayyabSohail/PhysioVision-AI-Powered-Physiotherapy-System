@@ -238,10 +238,15 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
                   required
                 >
-                  <option value="">Select</option>
-                  <option value="Almost Perfect">Almost Perfect</option>
-                  <option value="Immovable">Immovable</option>
-                  <option value="On your feet">On your feet</option>
+                  <option value="">Select Pain Level</option>
+                  <option value="Almost Perfect">
+                    <option value="Immovable">Severe Pain (Unbearable)</option>
+                    (Minimal Pain)
+                  </option>
+                  <option value="On your feet">
+                    On your feet (Manageable)
+                  </option>
+                  <option value="Immovable">Immovable (Unbearable)</option>
                 </select>
               </div>
             </>
