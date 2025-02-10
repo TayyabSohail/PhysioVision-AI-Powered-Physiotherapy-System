@@ -26,26 +26,42 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const nextStep = () => setStep((prev) => prev + 1);
+  const totalSteps = 3;
+
+  const isStepValid = () => {
+    // Check if the required fields for the current step are filled
+    if (step === 1) {
+      return formData.sex && formData.age && formData.height;
+    } else if (step === 2) {
+      return formData.hypertension && formData.painLevel && formData.diabetes;
+    } else if (step === 3) {
+      return formData.bmi && formData.mobility;
+    }
+    return false;
+  };
+
+  const nextStep = () => {
+    if (isStepValid()) {
+      setStep((prev) => prev + 1);
+    }
+  };
   const prevStep = () => setStep((prev) => prev - 1);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Form Submitted:", formData);
     onClose();
   };
 
-  const totalSteps = 3;
-
   return (
-    <div className="relative bg-slate-800 p-6 rounded-lg shadow-xl w-full max-w-lg border border-gray-600 overflow-hidden">
-      {/* Background blur */}
+    <div className="relative bg-slate-800 p-8 rounded-3xl shadow-xl w-full max-w-lg border border-gray-600 overflow-hidden">
       <div className="absolute inset-0 bg-black opacity-70 blur-md z-10"></div>
 
-      <h2 className="text-2xl font-semibold text-white mb-6 text-center relative z-20">
+      <h2 className="text-3xl font-semibold text-gray-200 mb-6 text-center relative z-20">
         Patient Information
       </h2>
 
-      {/* Progress Bar with Icons for Steps */}
+      {/* Progress Bar */}
       <div className="relative z-20 mb-6">
         <ul className="flex justify-between text-sm text-gray-300 items-center">
           <li
@@ -91,9 +107,6 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
             style={{ width: `${(step / totalSteps) * 100}%` }}
           ></div>
         </div>
-        <p className="text-center mt-2 text-gray-400">
-          Step {step} of {totalSteps}
-        </p>
       </div>
 
       {/* Form */}
@@ -114,7 +127,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="sex"
                   value={formData.sex}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
                   <option value="">Select</option>
@@ -132,7 +145,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="age"
                   value={formData.age}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   placeholder="Enter Age"
                   required
                 />
@@ -147,7 +160,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="height"
                   value={formData.height}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   placeholder="Enter Height in cm"
                   required
                 />
@@ -165,7 +178,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="hypertension"
                   value={formData.hypertension}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
                   <option value="">Select</option>
@@ -182,7 +195,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="painLevel"
                   value={formData.painLevel}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
                   <option value="">Select</option>
@@ -199,7 +212,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="diabetes"
                   value={formData.diabetes}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
                   <option value="">Select</option>
@@ -221,7 +234,7 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="bmi"
                   value={formData.bmi}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   placeholder="Enter BMI"
                   required
                 />
@@ -235,18 +248,13 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   name="mobility"
                   value={formData.mobility}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-md bg-slate-900 text-white border border-gray-600"
+                  className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
-                  <option value="">Select Pain Level</option>
-                  <option value="Almost Perfect">
-                    <option value="Immovable">Severe Pain (Unbearable)</option>
-                    (Minimal Pain)
-                  </option>
-                  <option value="On your feet">
-                    On your feet (Manageable)
-                  </option>
-                  <option value="Immovable">Immovable (Unbearable)</option>
+                  <option value="">Select</option>
+                  <option value="Almost Perfect">Almost Perfect</option>
+                  <option value="On your feet">On your feet</option>
+                  <option value="Immovable">Immovable</option>
                 </select>
               </div>
             </>
@@ -262,21 +270,15 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
               Previous
             </button>
           )}
-          {step < 3 ? (
-            <button
-              onClick={nextStep}
-              className="btn px-6 py-3 bg-indigo-500 text-white rounded-md"
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="btn px-6 py-3 bg-green-500 text-white rounded-md"
-            >
-              Submit
-            </button>
-          )}
+          <button
+            onClick={nextStep}
+            disabled={!isStepValid()}
+            className={`btn px-6 py-3 rounded-md ${
+              isStepValid() ? "bg-indigo-500" : "bg-gray-500"
+            } text-white`}
+          >
+            {step === totalSteps ? "Submit" : "Next"}
+          </button>
         </div>
       </form>
     </div>
