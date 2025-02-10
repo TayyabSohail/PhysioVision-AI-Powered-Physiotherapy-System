@@ -114,5 +114,34 @@ async def get_user_details(username: str):
         **user,  # Include user details
         **(physical_attributes or {})  # Include attributes if found
     }
-
     return {"success": True, "user": user_data}
+
+
+# Pydantic model for the field to be updated or created
+class UserField(BaseModel):
+    username: str
+    field_name: str
+    field_value: str
+
+@app.post("/api/update-field")
+async def update_field(user_field: UserField):
+    try:
+        # Find the user in the database
+        existing_user = collection_users.find_one({"username": user_field.username})
+
+        if not existing_user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Update the existing field or create it if it doesn't exist
+        updated_user = collection_users.update_one(
+            {"username": user_field.username},
+            {"$set": {user_field.field_name: user_field.field_value}},
+        )
+
+        if updated_user.matched_count == 0:
+            raise HTTPException(status_code=400, detail="Field update failed.")
+
+        return {"message": f"Field '{user_field.field_name}' updated successfully for {user_field.username}."}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
