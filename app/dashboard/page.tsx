@@ -110,7 +110,14 @@ const Dashboard: React.FC = () => {
                   <strong>Email:</strong> {userData?.email ?? "N/A"}
                 </p>
                 <p className="text-sm">
-                  <strong>Focus Area:</strong> {userData?.sex ?? "N/A"}
+                  <strong>Sex:</strong> {userData?.sex ?? "N/A"}
+                </p>
+                <p className="text-sm">
+                  <strong>Hypertension:</strong>{" "}
+                  {userData?.hypertension ?? "N/A"}
+                </p>{" "}
+                <p className="text-sm">
+                  <strong>Diabetes:</strong> {userData?.diabetes ?? "N/A"}
                 </p>
                 <p className="text-sm">
                   <strong>Mobility:</strong> {userData?.pain_category ?? "N/A"}
