@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaCheckCircle, FaRegCircle, FaRegDotCircle } from "react-icons/fa";
-
+import { updateUserData, UserFormData } from "../api/userForm.api";
 interface UserInfoFormProps {
   onClose: () => void;
 }
@@ -18,6 +18,8 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
     bmi: "",
     mobility: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<string>("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -29,7 +31,6 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
   const totalSteps = 3;
 
   const isStepValid = () => {
-    // Check if the required fields for the current step are filled
     if (step === 1) {
       return formData.sex && formData.age && formData.height;
     } else if (step === 2) {
@@ -45,12 +46,37 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
       setStep((prev) => prev + 1);
     }
   };
+
   const prevStep = () => setStep((prev) => prev - 1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form Submitted:", formData);
-    onClose();
+
+    // Prepare the data for submission (Mapping formData to UserFormData structure)
+    const userData: UserFormData = {
+      name: "", // This will need to come from somewhere (maybe another field or API)
+      username: "", // Same as above
+      email: "", // Same as above
+      sex: formData.sex,
+      age: Number(formData.age),
+      height: Number(formData.height),
+      hypertension: formData.hypertension,
+      diabetes: formData.diabetes,
+      bmi: Number(formData.bmi),
+      pain_level: formData.painLevel,
+      pain_category: formData.painLevel, // Assuming pain_level and pain_category are the same, adjust if needed
+    };
+
+    setIsSubmitting(true);
+    try {
+      const responseMessage = await updateUserData(userData); // API call to update the user data
+      setSubmitMessage(responseMessage); // Show success message
+      onClose();
+    } catch (error) {
+      setSubmitMessage("Error submitting form. Please try again later.");
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
+    }
   };
 
   return (
@@ -216,8 +242,8 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   required
                 >
                   <option value="">Select</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
+                  <option value="Yes">Yes (Diabetic)</option>
+                  <option value="No">No (None or Borderline)</option>
                 </select>
               </div>
             </>
@@ -251,10 +277,11 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
+                  {" "}
                   <option value="">Select</option>
-                  <option value="Almost Perfect">Almost Perfect</option>
-                  <option value="On your feet">On your feet</option>
                   <option value="Immovable">Immovable</option>
+                  <option value="On your feet">On your feet</option>
+                  <option value="Almost Perfect">Almost Perfect</option>
                 </select>
               </div>
             </>
@@ -264,22 +291,45 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
         <div className="flex justify-between mt-8">
           {step > 1 && (
             <button
+              type="button"
               onClick={prevStep}
-              className="btn px-6 py-3 bg-indigo-500 text-white rounded-md"
+              className="px-6 py-3 rounded-md bg-gray-700 text-gray-300"
             >
               Previous
             </button>
           )}
-          <button
-            onClick={nextStep}
-            disabled={!isStepValid()}
-            className={`btn px-6 py-3 rounded-md ${
-              isStepValid() ? "bg-indigo-500" : "bg-gray-500"
-            } text-white`}
-          >
-            {step === totalSteps ? "Submit" : "Next"}
-          </button>
+
+          <div>
+            {step < totalSteps && (
+              <button
+                type="button"
+                onClick={nextStep}
+                className={`${
+                  isStepValid() ? "bg-indigo-500" : "bg-gray-500"
+                } px-6 py-3 rounded-md text-gray-300`}
+                disabled={!isStepValid()}
+              >
+                Next
+              </button>
+            )}
+
+            {step === totalSteps && (
+              <button
+                type="submit"
+                className={`${
+                  isSubmitting ? "bg-gray-600" : "bg-indigo-500"
+                } px-6 py-3 rounded-md text-gray-300`}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit"}
+              </button>
+            )}
+          </div>
         </div>
+
+        {submitMessage && (
+          <div className="mt-6 text-center text-gray-200">{submitMessage}</div>
+        )}
       </form>
     </div>
   );
