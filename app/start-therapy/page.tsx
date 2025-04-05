@@ -45,8 +45,14 @@ export default function StartTherapy() {
   ];
 
   const handleFlip = (idx: number, exerciseName: string) => {
-    if (exerciseName === "Squats") {
-      router.push("/squats_vision"); // Navigate to squats_vision page
+    if (exerciseName === "Lunges") {
+      router.push("/frontend_vision/lunges_vision");
+    } else if (exerciseName === "Squats") {
+      router.push("/frontend_vision/squats_vision");
+    } else if (exerciseName === "Leg Raises") {
+      router.push("/frontend_vision/leg_raises");
+    } else if (exerciseName === "Warrior Pose") {
+      router.push("/frontend_vision/WarriorPose");
     } else {
       setFlippedCards((prev) => ({
         ...prev,

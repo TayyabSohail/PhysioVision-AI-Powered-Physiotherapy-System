@@ -39,8 +39,19 @@ next-env.d.ts
 .contentlayer
 
 #Ignoring the virtaul environment and the pycache 
-BACKEND/APP/__pycache__/
-BACKEND/APP/myenv/
+Backend/Backend/app/__pycache__/
+Backend/app/myenv/
 
+login_backend/__pycache__/
+login_backend/auth/
 #Private API 
 .env.local
+
+*.npy
+*.csv
+*.dll
+*.lib
+
+Backend_Vision/backend_env_310/
+Backend/Backend/myenv/
+git add Backend_Vision/

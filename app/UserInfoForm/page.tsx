@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaCheckCircle, FaRegCircle, FaRegDotCircle } from "react-icons/fa";
 import { updateUserData, UserFormData } from "../api/userForm.api";
+import { useUser } from "@/contexts/AppContext";
+
 interface UserInfoFormProps {
   onClose: () => void;
 }
 
 export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
+  const { username } = useUser(); // Get username from context
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     sex: "",
@@ -52,11 +55,16 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prepare the data for submission (Mapping formData to UserFormData structure)
+    if (!username) {
+      setSubmitMessage("User not logged in. Please log in first.");
+      return;
+    }
+
+    // Prepare the data for submission
     const userData: UserFormData = {
-      name: "", // This will need to come from somewhere (maybe another field or API)
-      username: "", // Same as above
-      email: "", // Same as above
+      name: "", // This will be filled in the backend
+      username: username, // Using the username from context
+      email: "", // This will be filled in the backend
       sex: formData.sex,
       age: Number(formData.age),
       height: Number(formData.height),
@@ -64,18 +72,21 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
       diabetes: formData.diabetes,
       bmi: Number(formData.bmi),
       pain_level: formData.painLevel,
-      pain_category: formData.painLevel, // Assuming pain_level and pain_category are the same, adjust if needed
+      pain_category: formData.painLevel,
+      mobility: formData.mobility,
     };
 
     setIsSubmitting(true);
     try {
-      const responseMessage = await updateUserData(userData); // API call to update the user data
-      setSubmitMessage(responseMessage); // Show success message
-      onClose();
+      const responseMessage = await updateUserData(userData);
+      setSubmitMessage(responseMessage);
+      setTimeout(() => {
+        onClose();
+      }, 2000); // Close the form after 2 seconds
     } catch (error) {
       setSubmitMessage("Error submitting form. Please try again later.");
     } finally {
-      setIsSubmitting(false); // Reset submitting state
+      setIsSubmitting(false);
     }
   };
 
@@ -277,7 +288,6 @@ export const UserInfoForm = ({ onClose }: UserInfoFormProps) => {
                   className="w-full px-6 py-3 rounded-md bg-slate-900 text-gray-300 border border-gray-600"
                   required
                 >
-                  {" "}
                   <option value="">Select</option>
                   <option value="Immovable">Immovable</option>
                   <option value="On your feet">On your feet</option>

@@ -1,0 +1,16 @@
+tiktoken
+sentence-transformers
+langchain
+openpyxl
+langchain-community
+langchain-chroma
+langchain-mistralai
+mistralai
+pandas
+fastapi
+uvicorn
+langchain_core
+numpy
+scikit-learn 
+pymongo
+

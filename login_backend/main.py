@@ -2,18 +2,20 @@ from pymongo import MongoClient
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, conint, confloat
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 from typing import Literal
 
 # Initialize FastAPI app
 app = FastAPI()
 
 # MongoDB URI for the database
-uri = "mongodb+srv://abdullahmasood450:harry_potter123@cluster0.ys9yt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
+uri = "mongodb+srv://abdullahmasood450:harry_potter123@cluster0.ys9yt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0" #HOME
+# uri = "mongodb+srv://abdullahmasood450:harry_potter123@cluster0.ys9yt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"   #Genysis Lab
 # Middleware for CORS (to allow requests from frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow your frontend URL
+    allow_origins=[],
+    allow_origin_regex=r"https://.*\.ngrok-free\.app|http://localhost:[0-9]+|http://127\.0\.0\.1:[0-9]+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,11 +29,12 @@ physical_attributes_collection = None
 
 @app.on_event("startup")
 def startup_db_client():
-    global client, db, collection_users, physical_attributes_collection
+    global client, db, collection_users
     client = MongoClient(uri)
     db = client["PhysioVision"]
     collection_users =  db["Users"]   
-    physical_attributes_collection = db["User_PhysicalAttributes"]
+    #physical_attributes_collection = db["User_PhysicalAttributes"]
+    #WeeklyPlan_collection = db["User_WeeklyPlan"]
     print("Connected to the MongoDB database!")
 
 # Pydantic model for sign-in request data
@@ -59,9 +62,6 @@ async def sign_in(user: UserSignIn):
             "username": existing_user["username"]
         }
     }
-
-
-
 
 
 # Pydantic model
@@ -93,8 +93,6 @@ async def sign_up(user: UserSignUp):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
- 
-
 
 @app.get("/api/user/{username}")
 async def get_user_details(username: str):
@@ -122,35 +120,49 @@ async def get_user_details(username: str):
     return {"success": True, "user": user_data}
 
 
-# Pydantic model for the field to be updated or created
-class UserField(BaseModel):
-    username: str
-    field_name: str
-    field_value: str
+##########################################################
 
-@app.post("/api/update-field")
-async def update_field(user_field: UserField):
-    try:
-        # Find the user in the database
-        existing_user = collection_users.find_one({"username": user_field.username})
 
-        if not existing_user:
-            raise HTTPException(status_code=404, detail="User not found.")
 
-        # Update the existing field or create it if it doesn't exist
-        updated_user = collection_users.update_one(
-            {"username": user_field.username},
-            {"$set": {user_field.field_name: user_field.field_value}},
-        )
 
-        if updated_user.matched_count == 0:
-            raise HTTPException(status_code=400, detail="Field update failed.")
 
-        return {"message": f"Field '{user_field.field_name}' updated successfully for {user_field.username}."}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+
+
+# # Pydantic model for the field to be updated or created
+# class UserField(BaseModel):
+#     username: str
+#     field_name: str
+#     field_value: str
+
+
+# @app.post("/api/update-field")
+# async def update_field(user_field: UserField):
+#     try:
+#         # Find the user in the database
+#         existing_user = collection_users.find_one({"username": user_field.username})
+
+#         if not existing_user:
+#             raise HTTPException(status_code=404, detail="User not found.")
+
+#         # Update the existing field or create it if it doesn't exist
+#         updated_user = collection_users.update_one(
+#             {"username": user_field.username},
+#             {"$set": {user_field.field_name: user_field.field_value}},
+#         )
+
+#         if updated_user.matched_count == 0:
+#             raise HTTPException(status_code=400, detail="Field update failed.")
+
+#         return {"message": f"Field '{user_field.field_name}' updated successfully for {user_field.username}."}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+# Run the FastAPI app on port 8000
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
     # Pydantic Model for Validation
 class HealthData(BaseModel):
     username : str

@@ -4,29 +4,127 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { Sidebar } from "../sidebar/page";
 import { useUser } from "@/contexts/AppContext";
-import { fetchUserData, User } from "../api/dashboard.api";
+
+// Types for the data
+interface User {
+  name?: string;
+  email?: string;
+  sex?: string;
+  hypertension?: string;
+  diabetes?: string;
+  pain_category?: string;
+  bmi?: number;
+  age?: number;
+  height?: number;
+}
+
+interface WeeklyPlan {
+  username: string;
+  weekly_plans: string[];
+}
+
+// API functions
+const fetchUserData = async (username: string): Promise<User | null> => {
+  try {
+    const response = await fetch(`http://localhost:8000/user/${username}`);
+    if (!response.ok) {
+      console.error("Failed to fetch user data");
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    return null;
+  }
+};
+
+const fetchWeeklyPlan = async (
+  username: string
+): Promise<WeeklyPlan | null> => {
+  try {
+    const response = await fetch(
+      `http://localhost:8000/weekly-plan/${username}`
+    );
+    if (!response.ok) {
+      console.error("Failed to fetch weekly plan");
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching weekly plan:", error);
+    return null;
+  }
+};
 
 const Dashboard: React.FC = () => {
   const { username } = useUser(); // Use username from context
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
+  const [weeklyPlanData, setWeeklyPlanData] = useState<WeeklyPlan | null>(null);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Fetch user data when the component mounts
+  // Fetch user data and weekly plan when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       if (username) {
-        // Check if username exists
-        const data = await fetchUserData(username); // Fetch data using username
-        setUserData(data); // Store the fetched data
+        // Fetch user data
+        const data = await fetchUserData(username);
+        setUserData(data);
+
+        // Fetch weekly plan data
+        const weeklyPlan = await fetchWeeklyPlan(username);
+        setWeeklyPlanData(weeklyPlan);
       }
     };
 
     fetchData();
   }, [username]); // Effect will rerun when username changes
+
+  // Function to parse and display weekly plan
+  const renderWeeklyPlan = () => {
+    if (
+      !weeklyPlanData ||
+      !weeklyPlanData.weekly_plans ||
+      weeklyPlanData.weekly_plans.length === 0
+    ) {
+      return <p className="text-sm">No weekly plan available.</p>;
+    }
+
+    // Display only up to 4 weeks in the card for space considerations
+    const displayWeeks = weeklyPlanData.weekly_plans.slice(0, 4);
+
+    return (
+      <>
+        {displayWeeks.map((plan, index) => {
+          const [exercisePart, nutritionPart] = plan.split("| Nutrition:");
+
+          return (
+            <div key={index} className="mb-3 pb-3 border-b border-gray-700">
+              <p className="text-sm font-semibold text-indigo-300">
+                Week {index + 1}
+              </p>
+              <p className="text-sm">
+                <strong>Exercises:</strong>{" "}
+                {exercisePart.replace(/Week \d+: /, "")}
+              </p>
+              {nutritionPart && (
+                <p className="text-sm">
+                  <strong>Nutrition:</strong> {nutritionPart}
+                </p>
+              )}
+            </div>
+          );
+        })}
+        <p className="text-sm mt-3">
+          <strong>No. of Weeks to Recover:</strong>{" "}
+          {weeklyPlanData.weekly_plans.length} Weeks
+        </p>
+      </>
+    );
+  };
 
   // Function to generate circular progress with gradient and attractive styles
   const CircleProgressWithGradient = ({ progress }: { progress: number }) => {
@@ -140,19 +238,8 @@ const Dashboard: React.FC = () => {
               <h2 className="text-xl font-bold text-indigo-400 mb-4 tracking-tight">
                 Recovery Plan
               </h2>
-              <div className="space-y-2">
-                <p className="text-sm">
-                  <strong>Week 1 Plan:</strong> Exercise & Food Plan
-                </p>
-                <p className="text-sm">
-                  <strong>Week 2 Plan:</strong> Exercise & Food Plan
-                </p>
-                <p className="text-sm">
-                  <strong>No. of Weeks to Recover:</strong> 8 Weeks
-                </p>
-                <p className="text-sm">
-                  <strong>Exercise Completion Rate:</strong> 85%
-                </p>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                {renderWeeklyPlan()}
               </div>
             </div>
 
@@ -175,10 +262,6 @@ const Dashboard: React.FC = () => {
                     <div className="flex flex-col items-center">
                       <CircleProgressWithGradient progress={40} />
                       <p className="mt-2 text-sm">Nutrition Progress</p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <CircleProgressWithGradient progress={75} />
-                      <p className="mt-2 text-sm">Pain Reduction</p>
                     </div>
                   </div>
                 </div>

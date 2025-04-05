@@ -1,0 +1,11 @@
+
+--- Lunges Exercise Report ---
+Total Frames Processed: 78
+Frames with Keypoints Detected: 0
+Correct Form Frames: 0
+Accuracy Rate: 0.0% correct
+No features calculated (no keypoints detected).
+
+Recommendations:
+  - Great job! Keep maintaining good form.
+--------------------------------
