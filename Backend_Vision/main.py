@@ -7,9 +7,10 @@ import time
 import websockets
 from functools import partial
 from squats import SquatAnalyzer  # Import SquatAnalyzer
-from WarriorPose  import WarriorPoseAnalyzer
+from WarriorPose import WarriorPoseAnalyzer
 from lunges_vision import LungesAnalyzer
 from legRaises import SLRExerciseAnalyzer 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,69 +23,97 @@ class VideoServer:
         self.server = None
         self.running = False
         self.current_analyzer = None
+        self.frame_processing_task = None
 
         # Initialize analyzers with SquatAnalyzer
         self.analyzers = {
-            "Squats": SquatAnalyzer(),  # Pass an instance of SquatAnalyzer
-            "Warrior": WarriorPoseAnalyzer(),  # Add WarriorPoseAnalyzer
+            "Squats": SquatAnalyzer(),  
+            "Warrior": WarriorPoseAnalyzer(),  
             "Lunges": LungesAnalyzer(),
             "LegRaises": SLRExerciseAnalyzer()
         }
 
     async def process_frames(self, input_source=0):
         """Centralized frame processing loop."""
-        self.cap = cv2.VideoCapture(input_source)
-        if not self.cap.isOpened():
-            logger.error(f"Error: Could not open video source {input_source}")
-            return
-
         try:
+            self.cap = cv2.VideoCapture(input_source)
+            if not self.cap.isOpened():
+                logger.error(f"Error: Could not open video source {input_source}")
+                await self._broadcast({"error": "Could not open video source"})
+                return
+
+            logger.info("Started processing frames")
             while self.running and self.cap.isOpened():
                 start_time = time.time()
 
                 success, frame = self.cap.read()
                 if not success:
-                    logger.info("End of video")
+                    logger.info("End of video or camera disconnected")
+                    await self._broadcast({"error": "Video source disconnected"})
                     break
 
                 # Process frame with the current analyzer if selected
                 if self.current_analyzer:
-                    processed_data = await self.current_analyzer.process_video(frame)
-                    if processed_data:
-                        await self._broadcast(processed_data)
+                    try:
+                        processed_data = await self.current_analyzer.process_video(frame)
+                        if processed_data:
+                            await self._broadcast(processed_data)
+                    except Exception as e:
+                        logger.error(f"Error processing frame: {e}")
+                        await self._broadcast({"error": f"Frame processing error: {str(e)}"})
 
                 # Maintain ~30 FPS
                 processing_time = time.time() - start_time
-                await asyncio.sleep(max(0, 0.03 - processing_time))
+                await asyncio.sleep(max(0, 0.033 - processing_time))  # Target ~30fps
 
         except Exception as e:
             logger.error(f"Error during frame processing: {e}")
+            await self._broadcast({"error": f"Frame processing error: {str(e)}"})
         finally:
             if self.cap:
                 self.cap.release()
+                self.cap = None
+            
+            # Generate report if analyzer exists
             if self.current_analyzer:
                 try:
                     report = self.current_analyzer.generate_report()
-                    if report is not None:  # Check if report is not None
+                    if report is not None:
                         print("\n" + report)
                         with open('report.txt', 'w') as f:
                             f.write(report)
+                        # Send report to clients
+                        await self._broadcast({"type": "report", "data": report})
                     else:
                         logger.warning("No report was generated (returned None)")
-                        print("\nNo report was generated.")
                 except Exception as e:
                     logger.error(f"Error generating report: {e}")
+            
             logger.info("Video processing stopped")
+            # Notify clients that processing has stopped
+            await self._broadcast({"status": "stopped"})
             
     async def _broadcast(self, message):
         """Broadcast a message to all connected clients."""
         if not self.clients:
             return
+            
+        dead_clients = set()
         message_json = json.dumps(message)
-        await asyncio.gather(
-            *[client.send(message_json) for client in self.clients],
-            return_exceptions=True
-        )
+        
+        for client in self.clients:
+            try:
+                await client.send(message_json)
+            except websockets.exceptions.ConnectionClosed:
+                dead_clients.add(client)
+            except Exception as e:
+                logger.error(f"Error broadcasting to client: {e}")
+                dead_clients.add(client)
+                
+        # Remove dead clients
+        self.clients -= dead_clients
+        if dead_clients:
+            logger.info(f"Removed {len(dead_clients)} dead clients")
 
     def broadcast_message(self, message):
         """Broadcast a message to all connected clients from any thread."""
@@ -94,7 +123,12 @@ class VideoServer:
     async def websocket_handler(self, websocket):
         """Handle incoming WebSocket connections."""
         self.clients.add(websocket)
-        logger.info(f"New client connected: {websocket.remote_address}")
+        client_info = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
+        logger.info(f"New client connected: {client_info}")
+        
+        # Send initial connection status
+        await websocket.send(json.dumps({"status": "connected"}))
+        
         try:
             async for message in websocket:
                 try:
@@ -107,38 +141,93 @@ class VideoServer:
                         await websocket.send(json.dumps({"status": "connected"}))
                     elif action == 'start':
                         if exercise in self.analyzers:
-                            if not self.running:
-                                self.current_analyzer = self.analyzers[exercise]
-                                self.current_analyzer.reset_counters()  # Reset counters for new exercise
-                                self.running = True
-                                asyncio.create_task(self.process_frames())
-                                await websocket.send(json.dumps({"status": "started", "exercise": exercise}))
-                            else:
-                                await websocket.send(json.dumps({"status": "already_running"}))
+                            await self.start_exercise(exercise, websocket)
                         else:
-                            await websocket.send(json.dumps({"error": "Invalid exercise"}))
+                            await websocket.send(json.dumps({"error": f"Invalid exercise: {exercise}"}))
                     elif action == 'stop':
-                        if self.running:
-                            self.running = False
-                            await websocket.send(json.dumps({"status": "stopped"}))
-                        else:
-                            await websocket.send(json.dumps({"status": "not_running"}))
+                        await self.stop_exercise(websocket)
+                    elif action == 'disconnect':
+                        logger.info(f"Client requested disconnect: {client_info}")
+                        await websocket.send(json.dumps({"status": "disconnected"}))
+                        # Client will be removed in the finally block
+                        break
                     else:
                         logger.warning(f"Unknown action: {action}")
                         await websocket.send(json.dumps({"error": "Unknown action"}))
                 except json.JSONDecodeError:
                     logger.error("Invalid JSON received")
                     await websocket.send(json.dumps({"error": "Invalid request format"}))
+                except Exception as e:
+                    logger.error(f"Error handling message: {e}")
+                    await websocket.send(json.dumps({"error": f"Server error: {str(e)}"}))
         except websockets.ConnectionClosed:
-            logger.info(f"Client disconnected: {websocket.remote_address}")
+            logger.info(f"Client disconnected: {client_info}")
+        except Exception as e:
+            logger.error(f"Unexpected error in websocket handler: {e}")
         finally:
             self.clients.remove(websocket)
+            logger.info(f"Client removed: {client_info}")
+
+    async def start_exercise(self, exercise, websocket):
+        """Start processing frames for the specified exercise."""
+        if self.running:
+            await websocket.send(json.dumps({"status": "already_running"}))
+            return
+
+        try:
+            self.current_analyzer = self.analyzers[exercise]
+            self.current_analyzer.reset_counters()  # Reset counters for new exercise
+            self.running = True
+            
+            # Cancel any existing task
+            if self.frame_processing_task and not self.frame_processing_task.done():
+                self.frame_processing_task.cancel()
+                
+            # Start new task
+            self.frame_processing_task = asyncio.create_task(self.process_frames())
+            await websocket.send(json.dumps({"status": "started", "exercise": exercise}))
+            logger.info(f"Started exercise: {exercise}")
+        except Exception as e:
+            logger.error(f"Error starting exercise: {e}")
+            await websocket.send(json.dumps({"error": f"Failed to start {exercise}: {str(e)}"}))
+
+    async def stop_exercise(self, websocket):
+        """Stop processing frames."""
+        if not self.running:
+            await websocket.send(json.dumps({"status": "not_running"}))
+            return
+
+        self.running = False
+        await websocket.send(json.dumps({"status": "stopping"}))
+        
+        # Wait for frame processing to complete
+        if self.frame_processing_task and not self.frame_processing_task.done():
+            try:
+                # Give it some time to clean up
+                await asyncio.wait_for(asyncio.shield(self.frame_processing_task), timeout=2.0)
+            except asyncio.TimeoutError:
+                # If it takes too long, cancel it
+                self.frame_processing_task.cancel()
+                logger.warning("Frame processing task took too long to stop, cancelled it")
+                
+        logger.info("Exercise stopped")
 
     def start_server(self, host='localhost', port=8765):
         """Start the WebSocket server."""
         def run_event_loop(loop):
             asyncio.set_event_loop(loop)
-            loop.run_forever()
+            try:
+                loop.run_forever()
+            except Exception as e:
+                logger.error(f"Error in event loop: {e}")
+            finally:
+                # Clean up pending tasks
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                # Close the loop
+                loop.run_until_complete(loop.shutdown_asyncgens())
+                loop.close()
 
         self.event_loop = asyncio.new_event_loop()
         server_thread = threading.Thread(
@@ -153,21 +242,34 @@ class VideoServer:
 
     async def _start_websocket_server(self, host, port):
         """Start the WebSocket server asynchronously."""
-        self.server = await websockets.serve(
-            self.websocket_handler,  # FIX: Directly pass the function
-            host,
-            port,
-            ping_interval=30
-        )
+        try:
+            self.server = await websockets.serve(
+                self.websocket_handler,
+                host,
+                port,
+                ping_interval=30,
+                ping_timeout=10
+            )
+            logger.info(f"WebSocket server running at ws://{host}:{port}")
+        except Exception as e:
+            logger.error(f"Failed to start WebSocket server: {e}")
+            # Try to shut down gracefully
+            if hasattr(self, 'event_loop') and self.event_loop:
+                self.event_loop.call_soon_threadsafe(self.event_loop.stop)
 
     def stop_server(self):
         """Stop the WebSocket server."""
         self.running = False
+        
         if self.server:
             self.server.close()
-            asyncio.run_coroutine_threadsafe(self.server.wait_closed(), self.event_loop)
+            if self.event_loop:
+                asyncio.run_coroutine_threadsafe(self.server.wait_closed(), self.event_loop)
+            
+        if self.event_loop:
             self.event_loop.call_soon_threadsafe(self.event_loop.stop)
-            logger.info("WebSocket server stopped")
+            
+        logger.info("WebSocket server stopped")
 
 if __name__ == "__main__":
     server = VideoServer()
