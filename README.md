@@ -17,7 +17,26 @@ https://github.com/user-attachments/assets/26a7f9aa-36be-4841-ab76-efeb5a698950
 
 
 ## Computer Vision Model
-https://github.com/user-attachments/assets/a582c312-d631-4676-bfc8-31c6f561c3b9
+### 1. Leg Raises 
+
+https://github.com/user-attachments/assets/4bb059af-f916-4c81-af94-709af0bc35b5
+
+
+### 2. Lunges
+
+https://github.com/user-attachments/assets/bc35a97a-2498-49dd-b6f5-05034a9fa7fc
+
+
+
+### 3. Squats
+
+https://github.com/user-attachments/assets/959479b5-4d65-41a7-a4ec-a0675ec4de9e
+
+
+### 4. Warrior Pose
+
+https://github.com/user-attachments/assets/52766d32-4591-4575-a242-49d52bbdd829
+
 
 
 
