@@ -125,6 +125,9 @@ ________________________________________________________________________________
 https://github.com/user-attachments/assets/151388e1-b676-4925-b3af-e60a923c4a18
 
 
+_____________________________________________________________________________________________________
+# PROJECT POSTER
+![PhysioVision_Banner](https://github.com/user-attachments/assets/9ecedbee-da63-4481-b94c-a2591fd09d98)
 
 
 
