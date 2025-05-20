@@ -107,7 +107,16 @@ class WarriorPoseAnalyzer:
         if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
            not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
             errors.append("Raise your arms to shoulder level" if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully")
+        
+        # Check if wrists are at shoulder level (y-coordinates)
+        l_shoulder_y, r_shoulder_y = l_shoulder[1], r_shoulder[1]
+        l_wrist_y, r_wrist_y = l_wrist[1], r_wrist[1]
 
+        shoulder_level_threshold = 0.05  # adjust based on how strict you want it
+
+        if abs(l_shoulder_y - l_wrist_y) > shoulder_level_threshold or \
+           abs(r_shoulder_y - r_wrist_y) > shoulder_level_threshold:
+            errors.append("Keep your arms at shoulder height")
         return errors[:3]
 
     def generate_report(self):

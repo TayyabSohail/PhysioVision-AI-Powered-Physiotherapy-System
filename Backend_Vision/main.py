@@ -10,6 +10,15 @@ from squats import SquatAnalyzer  # Import SquatAnalyzer
 from WarriorPose import WarriorPoseAnalyzer
 from lunges_vision import LungesAnalyzer
 from legRaises import SLRExerciseAnalyzer 
+from pymongo import MongoClient
+
+logger = logging.getLogger(__name__)  # Assuming you use this logger
+
+# MongoDB setup (outside the class ideally, but okay here for simplicity)
+uri = "mongodb+srv://abdullahmasood450:harry_potter123@cluster0.ys9yt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+mongo_client = MongoClient(uri)
+mongo_db = mongo_client["PhysioVision"]
+mongo_collection = mongo_db["vision_reports"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,66 +42,82 @@ class VideoServer:
             "LegRaises": SLRExerciseAnalyzer()
         }
 
-    async def process_frames(self, input_source=0):
-        """Centralized frame processing loop."""
-        try:
-            self.cap = cv2.VideoCapture(input_source)
-            if not self.cap.isOpened():
-                logger.error(f"Error: Could not open video source {input_source}")
-                await self._broadcast({"error": "Could not open video source"})
-                return
+async def process_frames(self, input_source=0):
+    """Centralized frame processing loop."""
+    try:
+        self.cap = cv2.VideoCapture(input_source)
+        if not self.cap.isOpened():
+            logger.error(f"Error: Could not open video source {input_source}")
+            await self._broadcast({"error": "Could not open video source"})
+            return
 
-            logger.info("Started processing frames")
-            while self.running and self.cap.isOpened():
-                start_time = time.time()
+        logger.info("Started processing frames")
+        while self.running and self.cap.isOpened():
+            start_time = time.time()
 
-                success, frame = self.cap.read()
-                if not success:
-                    logger.info("End of video or camera disconnected")
-                    await self._broadcast({"error": "Video source disconnected"})
-                    break
+            success, frame = self.cap.read()
+            if not success:
+                logger.info("End of video or camera disconnected")
+                await self._broadcast({"error": "Video source disconnected"})
+                break
 
-                # Process frame with the current analyzer if selected
-                if self.current_analyzer:
-                    try:
-                        processed_data = await self.current_analyzer.process_video(frame)
-                        if processed_data:
-                            await self._broadcast(processed_data)
-                    except Exception as e:
-                        logger.error(f"Error processing frame: {e}")
-                        await self._broadcast({"error": f"Frame processing error: {str(e)}"})
-
-                # Maintain ~30 FPS
-                processing_time = time.time() - start_time
-                await asyncio.sleep(max(0, 0.033 - processing_time))  # Target ~30fps
-
-        except Exception as e:
-            logger.error(f"Error during frame processing: {e}")
-            await self._broadcast({"error": f"Frame processing error: {str(e)}"})
-        finally:
-            if self.cap:
-                self.cap.release()
-                self.cap = None
-            
-            # Generate report if analyzer exists
+            # Process frame with the current analyzer if selected
             if self.current_analyzer:
                 try:
-                    report = self.current_analyzer.generate_report()
-                    if report is not None:
-                        print("\n" + report)
-                        with open('report.txt', 'w') as f:
-                            f.write(report)
-                        # Send report to clients
-                        await self._broadcast({"type": "report", "data": report})
-                    else:
-                        logger.warning("No report was generated (returned None)")
+                    processed_data = await self.current_analyzer.process_video(frame)
+                    if processed_data:
+                        await self._broadcast(processed_data)
                 except Exception as e:
-                    logger.error(f"Error generating report: {e}")
-            
-            logger.info("Video processing stopped")
-            # Notify clients that processing has stopped
-            await self._broadcast({"status": "stopped"})
-            
+                    logger.error(f"Error processing frame: {e}")
+                    await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+
+            # Maintain ~30 FPS
+            processing_time = time.time() - start_time
+            await asyncio.sleep(max(0, 0.033 - processing_time))  # Target ~30fps
+
+    except Exception as e:
+        logger.error(f"Error during frame processing: {e}")
+        await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+    finally:
+        if self.cap:
+            self.cap.release()
+            self.cap = None
+
+        # Generate report if analyzer exists
+        if self.current_analyzer:
+            try:
+                report = self.current_analyzer.generate_report()
+                if report is not None:
+                    print("\n" + report)
+                    with open('report.txt', 'w') as f:
+                        f.write(report)
+                    
+                    # Send report to clients
+                    await self._broadcast({"type": "report", "data": report})
+
+                    # Save report to MongoDB
+                    try:
+                        report_doc = {
+                            "filename": "report.txt",
+                            "content": report,
+                            "timestamp": datetime.datetime.utcnow(),
+                            "exercise": "Warrior II",  # Or extract dynamically
+                            "source": str(input_source),
+                            "analyzer": self.current_analyzer.__class__.__name__
+                        }
+                        mongo_collection.insert_one(report_doc)
+                        logger.info("Report successfully saved to MongoDB.")
+                    except Exception as mongo_err:
+                        logger.error(f"Error saving report to MongoDB: {mongo_err}")
+
+                else:
+                    logger.warning("No report was generated (returned None)")
+            except Exception as e:
+                logger.error(f"Error generating report: {e}")
+
+        logger.info("Video processing stopped")
+        # Notify clients that processing has stopped
+        await self._broadcast({"status": "stopped"})            
     async def _broadcast(self, message):
         """Broadcast a message to all connected clients."""
         if not self.clients:

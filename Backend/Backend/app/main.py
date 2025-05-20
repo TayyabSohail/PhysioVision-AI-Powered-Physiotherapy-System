@@ -166,121 +166,12 @@ async def get_user_details(username: str):
     }
     return {"success": True, "user": user_data}
 
-
-##########################################################
-
-
-
-
-
-
-
-
-# # Pydantic model for sign-in request data
-# class UserSignIn(BaseModel):
-#     username: str
-#     password: str
-
-# @app.post("/api/signin")
-# async def sign_in(user: UserSignIn):
-#     # Find the user in the database
-#     existing_user = collection_users.find_one({"username": user.username})
-
-#     if not existing_user:
-#         raise HTTPException(status_code=400, detail="Username does not exist.")
-
-#     # Compare passwords directly (no hashing)
-#     if user.password != existing_user["password"]:
-#         raise HTTPException(status_code=400, detail="Incorrect password.")
-
-#     # Return success response
-#     return {
-#         "message": "Login successful",
-#         "success": True,
-#         "user": {
-#             "username": existing_user["username"]
-#         }
-#     }
-
-
-
-
-
-# # Pydantic model
-# class UserSignUp(BaseModel):
-#     name: str
-#     username: str
-#     email: str
-#     password: str
-
-
-# # User sign-up route
-# @app.post("/api/signup")
-# async def sign_up(user: UserSignUp):
-#     try:
-#         # Check if username or email already exists
-#         existing_user = collection_users.find_one({"username": user.username})
-#         existing_email = collection_users.find_one({"email": user.email})
-
-#         if existing_user:
-#             raise HTTPException(status_code=400, detail="Username already exists. Try another one.")
-        
-#         if existing_email:
-#             raise HTTPException(status_code=400, detail="A user already registed with this email. Try another one")
-
-#         # Convert Pydantic model to dictionary
-#         user_data = user.dict()
-#         result = collection_users.insert_one(user_data)  # Insert the document
-#         return {"message": "User registered successfully!"}
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
- 
-
-
-
-#     # Pydantic Model for Validation
-# class HealthData(BaseModel):
-#     username : str
-#     sex: Literal["Female", "Male"]
-#     age: conint(ge =0)  # Ensures age is a non-negative integer
-#     height: confloat(ge=50, le=250)  # Ensures height is within range 
-#     hypertension: Literal["YES", "NO"]
-#     diabetes: Literal["YES", "NO"]
-#     bmi: confloat(ge=10, le=50) 
-#     pain_level: Literal["Acronic", "Acute"]
-#     pain_category: Literal["Almost Perfect", "Immovable", "On your feet"]
-
-
-# @app.post("/submit_physical_attributes")
-# async def add_health_data(data: HealthData):
-#     # Check if the user exists in the "users" collection
-#     user = collection_users.find_one({"username": data.username})
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found")
-
-#     # Convert the Pydantic data to a dictionary
-#     health_data = data.dict()
-
-#     # Update or insert the health data in the "physical_attributes" collection
-#     physical_attributes_collection.update_one(
-#         {"username": data.username},  # Find document by username
-#         {"$set": health_data},  # Update fields with new data
-#         upsert=True  # Insert if not exists
-#     )
-
-#     return {"message": "Health data updated successfully"}
-
-
 class ChatRequest(BaseModel):
     username: str
     user_input: str
 
-
-
 class ChatResponse(BaseModel):
     response: str
-
 
 def fetch_document_for_user(username: str):
     document = physical_attributes_collection.find_one({"username": username})  # Query MongoDB
@@ -288,8 +179,6 @@ def fetch_document_for_user(username: str):
     if document:
         return document
     return "No document found for this user."
-
-
 
 def update_weeklyplan(username, query_document):
     if query_document != "Empty":
@@ -373,7 +262,18 @@ async def get_user(username: str):
     
     return user
 
-
-
-
- 
+@app.get("/vision-report/latest")
+async def get_latest_vision_report():
+    vision_reports_collection = db["vision_reports"]
+    
+    report = vision_reports_collection.find_one(
+        {},  # No filter, get any document
+    sort=[("timestamp", -1)]
+    )
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="No vision report found")
+    
+    report["_id"] = str(report["_id"])  # Serialize ObjectId
+    
+    return report

@@ -177,7 +177,7 @@ export default function LegRaises() {
                 </div>
               )}
               <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
-                <p>Reps: {repCount}</p>
+                {/* <p>Reps: {repCount}</p> */}
                 {/* <p>Prediction: {prediction || "N/A"}</p> */}
               </div>
             </>

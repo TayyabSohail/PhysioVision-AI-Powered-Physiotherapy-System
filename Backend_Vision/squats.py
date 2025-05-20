@@ -385,33 +385,46 @@ class SquatAnalyzer:
 
 
 
-    def _update_rep_count(self, current_depth):
-        """Update squat state and count reps based on squat depth"""
-        # Use average of left and right squat depth for consistency
-        avg_depth = (current_depth['left_squat_depth'] + current_depth['right_squat_depth']) / 2
-        self.depth_history.append(avg_depth)
+    # def _update_rep_count(self, current_depth):
+    #     """Update squat state and count reps based on squat depth"""
+    #     # Use average of left and right squat depth for consistency
+    #     avg_depth = (current_depth['left_squat_depth'] + current_depth['right_squat_depth']) / 2
+    #     self.depth_history.append(avg_depth)
 
-        # Update min and max depths dynamically
-        if len(self.depth_history) == self.depth_history.maxlen:
-            current_min = min(self.depth_history)
-            current_max = max(self.depth_history)
+    #     # Update min and max depths dynamically
+    #     if len(self.depth_history) == self.depth_history.maxlen:
+    #         current_min = min(self.depth_history)
+    #         current_max = max(self.depth_history)
             
-            if self.min_depth is None or current_min < self.min_depth:
-                self.min_depth = current_min
-            if self.max_depth is None or current_max > self.max_depth:
-                self.max_depth = current_max
+    #         if self.min_depth is None or current_min < self.min_depth:
+    #             self.min_depth = current_min
+    #         if self.max_depth is None or current_max > self.max_depth:
+    #             self.max_depth = current_max
 
-            # Calculate dynamic threshold
-            if self.min_depth is not None and self.max_depth is not None:
-                depth_range = self.max_depth - self.min_depth
-                threshold = self.min_depth + (depth_range * self.depth_threshold_factor)
+    #         # Calculate dynamic threshold
+    #         if self.min_depth is not None and self.max_depth is not None:
+    #             depth_range = self.max_depth - self.min_depth
+    #             threshold = self.min_depth + (depth_range * self.depth_threshold_factor)
 
-                # State transitions
-                if self.state == 'STANDING' and avg_depth < threshold:
-                    self.state = 'SQUATTING'
-                elif self.state == 'SQUATTING' and avg_depth > threshold:
-                    self.state = 'STANDING'
-                    self.rep_count += 1  # Count a rep when returning to standing
+    #             # State transitions
+    #             if self.state == 'STANDING' and avg_depth < threshold:
+    #                 self.state = 'SQUATTING'
+    #             elif self.state == 'SQUATTING' and avg_depth > threshold:
+    #                 self.state = 'STANDING'
+    #                 self.rep_count += 1  # Count a rep when returning to standing
+
+    def _update_rep_count(self, current_depth):
+        avg_depth = (current_depth['left_squat_depth'] + current_depth['right_squat_depth']) / 2
+    
+        # Allow small margin above knees
+        squat_threshold = -0.1
+    
+        if self.state == 'STANDING' and avg_depth >= squat_threshold:
+            self.state = 'SQUATTING'
+    
+        elif self.state == 'SQUATTING' and avg_depth < squat_threshold:
+            self.state = 'STANDING'
+            self.rep_count += 1
 
     def _update_error_counts(self, prediction):
         """Update the count of the current prediction/error"""

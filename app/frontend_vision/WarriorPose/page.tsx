@@ -227,7 +227,7 @@ export default function WarriorPose() {
                 className="max-h-full max-w-full border rounded-lg shadow-lg"
                 onError={() => setFrameSrc(null)}
               />
-              {feedback && (
+              {/* {feedback && (
                 <div
                   className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-2 max-w-sm w-[90%] rounded-xl text-center text-base font-semibold backdrop-blur-md shadow-lg ${
                     formStatus === "good" ? "bg-green-500/70" : "bg-red-500/70"
@@ -235,7 +235,7 @@ export default function WarriorPose() {
                 >
                   {feedback}
                 </div>
-              )}
+              )} */}
               <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
                 {isRecording ? (
                   <>

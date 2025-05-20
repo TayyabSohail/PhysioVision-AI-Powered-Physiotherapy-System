@@ -48,9 +48,9 @@ export default function LungeVision() {
         const data = JSON.parse(event.data);
         console.log("Received WebSocket message:", data);
 
-        if (data.type === "frame" && data.frame) {
+        if (data.type === "frame" && data.data) {
           // Handle frame data
-          setFrameSrc(`data:image/jpeg;base64,${data.frame}`);
+          setFrameSrc(`data:image/jpeg;base64,${data.data}`);
           setGoodFormFrames(data.good_form_frames || 0);
           setFrameCount(data.frame_count || 0);
           setErrorCounts(data.error_counts || {});
@@ -242,7 +242,7 @@ export default function LungeVision() {
                   setFrameSrc(null);
                 }}
               />
-              {feedback && (
+              {/* {feedback && (
                 <div
                   className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-2 max-w-sm w-[90%] rounded-xl text-center text-base font-semibold backdrop-blur-md shadow-lg ${
                     formStatus === "good" ? "bg-green-500/70" : "bg-red-500/70"
@@ -250,7 +250,7 @@ export default function LungeVision() {
                 >
                   {feedback}
                 </div>
-              )}
+              )} */}
               <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
                 {isRecording ? (
                   <>
