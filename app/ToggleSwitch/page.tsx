@@ -1,9 +1,7 @@
-"use client";
+import React, { useEffect, useState } from "react";
+import { useAudio } from "@/contexts/AudioContexts";
 
-import React, { useState, useEffect } from "react";
-
-// Define the props interface
-interface ToggleSwitchProps {
+interface ToggleProps {
   onToggleChange: ({
     isEnabled,
     isOriginalChecked,
@@ -13,21 +11,42 @@ interface ToggleSwitchProps {
   }) => void;
 }
 
-export function ToggleSwitch({ onToggleChange }: ToggleSwitchProps) {
-  const [isEnabled, setIsEnabled] = useState(false); // controls if original toggle is enabled
-  const [isOriginalChecked, setIsOriginalChecked] = useState(false); // state of original toggle
+export const ToggleSwitch = ({ onToggleChange }: ToggleProps) => {
+  const { audiobot, language, setAudiobot, setLanguage } = useAudio();
 
-  // Reset isOriginalChecked when isEnabled becomes false
+  const [isEnabled, setIsEnabled] = useState(audiobot === "on");
+  const [isOriginalChecked, setIsOriginalChecked] = useState(language === "ur");
+
   useEffect(() => {
-    if (!isEnabled) {
-      setIsOriginalChecked(false);
+    setIsEnabled(audiobot === "on");
+    setIsOriginalChecked(language === "ur");
+  }, [audiobot, language]);
+
+  const handleToggle = () => {
+    const newEnabled = !isEnabled;
+    setIsEnabled(newEnabled);
+
+    if (newEnabled) {
+      setAudiobot("on");
+      setLanguage(isOriginalChecked ? "ur" : "en");
+    } else {
+      setAudiobot("off");
+      setLanguage("");
     }
-  }, [isEnabled]);
 
-  // Notify parent of toggle state changes
-  useEffect(() => {
-    onToggleChange({ isEnabled, isOriginalChecked });
-  }, [isEnabled, isOriginalChecked, onToggleChange]);
+    onToggleChange({ isEnabled: newEnabled, isOriginalChecked });
+  };
+
+  const handleLanguageChange = () => {
+    const newChecked = !isOriginalChecked;
+    setIsOriginalChecked(newChecked);
+
+    if (isEnabled) {
+      setLanguage(newChecked ? "ur" : "en");
+    }
+
+    onToggleChange({ isEnabled, isOriginalChecked: newChecked });
+  };
 
   return (
     <div className="p-6 flex items-center gap-8">
@@ -47,7 +66,7 @@ export function ToggleSwitch({ onToggleChange }: ToggleSwitchProps) {
           role="switch"
           id="controllerSwitch"
           checked={isEnabled}
-          onChange={() => setIsEnabled((prev) => !prev)}
+          onChange={handleToggle}
         />
         <label htmlFor="controllerSwitch" className="inline-block pl-[0.15rem]">
           Enable Audiobot
@@ -71,7 +90,7 @@ export function ToggleSwitch({ onToggleChange }: ToggleSwitchProps) {
           id="originalSwitch"
           disabled={!isEnabled}
           checked={isOriginalChecked}
-          onChange={() => setIsOriginalChecked((prev) => !prev)}
+          onChange={handleLanguageChange}
         />
         <label
           htmlFor="originalSwitch"
@@ -79,9 +98,9 @@ export function ToggleSwitch({ onToggleChange }: ToggleSwitchProps) {
             !isEnabled ? "opacity-50" : ""
           }`}
         >
-          Use Urdu
+          English / Urdu
         </label>
       </div>
     </div>
   );
-}
+};

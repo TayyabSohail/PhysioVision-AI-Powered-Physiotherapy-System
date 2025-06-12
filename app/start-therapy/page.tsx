@@ -111,9 +111,6 @@ export default function StartTherapy() {
               of the way. From real-time posture corrections to detailed
               progress tracking, start your journey today with our AI-driven
               support system. <br />
-              STATUS: The audiobot is {audiobot}
-              <br />
-              LANGUAGE: The selected language is {language}
             </p>
 
             <div className="space-y-4">
@@ -127,6 +124,13 @@ export default function StartTherapy() {
                   <li>Session report generation.</li>
                 </ul>
               </div>
+              <br />
+              STATUS: The audiobot is {audiobot}
+              <br />
+              <p>
+                LANGUAGE: The selected language is{" "}
+                {language === "en" ? "English" : "Urdu"}
+              </p>
             </div>
           </div>
 

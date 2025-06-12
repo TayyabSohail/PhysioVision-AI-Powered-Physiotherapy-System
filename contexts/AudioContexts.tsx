@@ -1,10 +1,9 @@
-// /contexts/AudioContext.tsx
 import {
   createContext,
   useContext,
   useState,
-  useEffect,
   ReactNode,
+  useEffect,
 } from "react";
 
 interface AudioContextType {
@@ -17,35 +16,47 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
-  const [audiobot, setAudiobotState] = useState<"on" | "off">("off");
-  const [language, setLanguageState] = useState<"en" | "ur" | "">("");
+  const [audiobot, setAudiobotState] = useState<"on" | "off">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("audiobot") as "on" | "off" | null;
+      console.log("🎯 [Init] Audiobot loaded from localStorage:", stored);
+      return stored || "off";
+    }
+    return "off";
+  });
 
-  // On mount, load saved state
-  useEffect(() => {
-    const savedAudiobot = localStorage.getItem("audiobot") as
-      | "on"
-      | "off"
-      | null;
-    const savedLanguage = localStorage.getItem("language") as
-      | "en"
-      | "ur"
-      | ""
-      | null;
-    if (savedAudiobot) setAudiobotState(savedAudiobot);
-    if (savedLanguage) setLanguageState(savedLanguage);
-  }, []);
+  const [language, setLanguageState] = useState<"en" | "ur" | "">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("language") as
+        | "en"
+        | "ur"
+        | ""
+        | null;
+      console.log("🎯 [Init] Language loaded from localStorage:", stored);
+      return stored || "";
+    }
+    return "";
+  });
 
-  // Save to localStorage on change
   useEffect(() => {
+    console.log("💾 [Effect] Saving audiobot to localStorage:", audiobot);
     localStorage.setItem("audiobot", audiobot);
   }, [audiobot]);
 
   useEffect(() => {
+    console.log("💾 [Effect] Saving language to localStorage:", language);
     localStorage.setItem("language", language);
   }, [language]);
 
-  const setAudiobot = (value: "on" | "off") => setAudiobotState(value);
-  const setLanguage = (value: "en" | "ur" | "") => setLanguageState(value);
+  const setAudiobot = (value: "on" | "off") => {
+    console.log("🧠 [Setter] setAudiobot called with:", value);
+    setAudiobotState(value);
+  };
+
+  const setLanguage = (value: "en" | "ur" | "") => {
+    console.log("🧠 [Setter] setLanguage called with:", value);
+    setLanguageState(value);
+  };
 
   return (
     <AudioContext.Provider
@@ -61,5 +72,6 @@ export const useAudio = () => {
   if (!context) {
     throw new Error("useAudio must be used within an AudioProvider");
   }
+  console.log("🎧 [Hook] useAudio accessed context →", context);
   return context;
 };
