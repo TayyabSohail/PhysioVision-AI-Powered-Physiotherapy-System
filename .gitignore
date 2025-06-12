@@ -51,6 +51,7 @@ login_backend/auth/
 *.csv
 *.dll
 *.lib
+*.pyc
 
 Backend_Vision/backend_env_310/
 Backend/Backend/myenv/

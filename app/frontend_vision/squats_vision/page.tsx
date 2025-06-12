@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "../../sidebar/page";
+import { useAudio } from "@/contexts/AudioContexts";
 
 export default function SquatVision() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,7 +18,20 @@ export default function SquatVision() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null); // Ref for audio element
   const MAX_RECONNECT_ATTEMPTS = 5;
+  const { audiobot, language } = useAudio();
+
+  // Initialize audio element
+  useEffect(() => {
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     connectWebSocket();
@@ -31,13 +45,13 @@ export default function SquatVision() {
 
   const connectWebSocket = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      return; // Prevent duplicate connections
+      return;
     }
 
     setConnectionStatus("connecting");
     setErrorMessage(null);
 
-    const ws = new WebSocket("ws://localhost:8765/ws");
+    const ws = new WebSocket("ws://localhost:8765");
 
     ws.onopen = () => {
       console.log("WebSocket connected");
@@ -50,14 +64,20 @@ export default function SquatVision() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("Received WebSocket message:", data); // Log the entire message
+        console.log("Received WebSocket message:", data);
 
         if (data.type === "frame") {
-          console.log("Frame received, setting frameSrc");
           setFrameSrc(`data:image/jpeg;base64,${data.data}`);
           setPrediction(data.prediction || null);
           setConfidence(data.confidence || null);
           setRepCount(data.rep_count || 0);
+
+          // Show error_text if it's present
+          if (data.error_text) {
+            setErrorMessage(data.error_text);
+          } else {
+            setErrorMessage(null);
+          }
 
           if (data.prediction) {
             setFeedback(
@@ -66,9 +86,27 @@ export default function SquatVision() {
                 : `Form issue: ${data.prediction}`
             );
             setFormStatus(data.prediction === "good" ? "good" : "bad");
+          } else {
+            setFeedback(null);
+            setFormStatus(null);
+          }
+        } else if (data.type === "audio") {
+          if (data.audio_data && audiobot === "on") {
+            const audioBlob = base64ToBlob(data.audio_data, "audio/mpeg");
+            const audioUrl = URL.createObjectURL(audioBlob);
+            if (audioRef.current) {
+              audioRef.current.src = audioUrl;
+              audioRef.current.play().catch((e) => {
+                console.error("Audio playback error:", e);
+                setErrorMessage("Failed to play audio feedback.");
+              });
+              audioRef.current.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                audioRef.current!.onended = null;
+              };
+            }
           }
         } else if (data.status) {
-          console.log(`Status update: ${data.status}`);
           if (data.status === "started") {
             setIsRunning(true);
           } else if (data.status === "stopped") {
@@ -76,6 +114,7 @@ export default function SquatVision() {
             setFrameSrc(null);
             setFeedback(null);
             setFormStatus(null);
+            setErrorMessage(null);
           }
         } else if (data.error) {
           setErrorMessage(data.error);
@@ -86,6 +125,7 @@ export default function SquatVision() {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        setErrorMessage("Error processing server message.");
       }
     };
 
@@ -116,12 +156,27 @@ export default function SquatVision() {
     wsRef.current = ws;
   };
 
+  // Convert base64 to Blob for audio playback
+  const base64ToBlob = (base64: string, mimeType: string) => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  };
+
   const startSquats = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       setErrorMessage(null);
-      // Updated to match the backend's expected format
       wsRef.current.send(
-        JSON.stringify({ action: "start", exercise: "Squats" })
+        JSON.stringify({
+          action: "start",
+          exercise: "Squats",
+          audiobot,
+          language,
+        })
       );
     } else {
       setErrorMessage("Not connected to server. Trying to reconnect...");
@@ -160,16 +215,16 @@ export default function SquatVision() {
           </div>
         )}
 
-        <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-900 rounded-lg overflow-hidden relative">
+        <div className="flex flex-col items-center justify-center h-[80vh] bg-gray-900 rounded-lg overflow-hidden relative">
           {frameSrc ? (
             <>
               <img
                 src={frameSrc}
                 alt="Webcam Feed"
-                className="max-h-full max-w-full border rounded-lg shadow-lg"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   console.error("Error loading image:", e);
-                  setFrameSrc(null); // Reset frameSrc if there's an error
+                  setFrameSrc(null);
                 }}
               />
               {feedback && (
@@ -181,10 +236,12 @@ export default function SquatVision() {
                   {feedback}
                 </div>
               )}
-              <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
-                <p>Reps: {repCount}</p>
-                <p>Prediction: {prediction || "N/A"}</p>
-              </div>
+              {
+                <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
+                  <p>Reps: {repCount}</p>
+                  <p>Prediction: {prediction || "N/A"}</p>
+                </div>
+              }
             </>
           ) : (
             <div className="text-white text-center">

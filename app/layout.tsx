@@ -6,6 +6,7 @@ import localFont from "next/font/local"; // Local Fonts
 import Header from "@/components/ui/header"; // Custom Header Component
 import { usePathname } from "next/navigation"; // Client-side hook to get current path
 import { UserProvider } from "@/contexts/AppContext"; // Import UserProvider
+import { AudioProvider } from "@/contexts/AudioContexts";
 
 // Load fonts
 const inter = Inter({
@@ -63,7 +64,9 @@ export default function RootLayout({
         <div className="flex min-h-screen flex-col overflow-hidden supports-[overflow:clip]:overflow-clip">
           {shouldShowHeader && <Header />}
           {/* Wrap entire app with UserProvider */}
-          <UserProvider>{children}</UserProvider>
+          <UserProvider>
+            <AudioProvider>{children}</AudioProvider>
+          </UserProvider>
         </div>
       </body>
     </html>

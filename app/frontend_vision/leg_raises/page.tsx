@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "../../sidebar/page";
+import { useAudio } from "@/contexts/AudioContexts";
 
 export default function LegRaises() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,7 +18,21 @@ export default function LegRaises() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null); // Ref for audio element
   const MAX_RECONNECT_ATTEMPTS = 5;
+
+  const { audiobot, language } = useAudio();
+
+  // Initialize audio element
+  useEffect(() => {
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     connectWebSocket();
@@ -31,13 +46,13 @@ export default function LegRaises() {
 
   const connectWebSocket = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      return; // Prevent duplicate connections
+      return;
     }
 
     setConnectionStatus("connecting");
     setErrorMessage(null);
 
-    const ws = new WebSocket("ws://localhost:8765/ws");
+    const ws = new WebSocket("ws://localhost:8765");
 
     ws.onopen = () => {
       console.log("WebSocket connected");
@@ -66,6 +81,24 @@ export default function LegRaises() {
             );
             setFormStatus(data.prediction === "good" ? "good" : "bad");
           }
+        } else if (data.type === "audio") {
+          // Handle audio data
+          if (data.audio_data && audiobot === "on") {
+            const audioBlob = base64ToBlob(data.audio_data, "audio/mpeg");
+            const audioUrl = URL.createObjectURL(audioBlob);
+            if (audioRef.current) {
+              audioRef.current.src = audioUrl;
+              audioRef.current.play().catch((e) => {
+                console.error("Audio playback error:", e);
+                setErrorMessage("Failed to play audio feedback.");
+              });
+              // Clean up URL after playback
+              audioRef.current.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                audioRef.current!.onended = null;
+              };
+            }
+          }
         } else if (data.status) {
           if (data.status === "started") {
             setIsRunning(true);
@@ -84,6 +117,7 @@ export default function LegRaises() {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        setErrorMessage("Error processing server message.");
       }
     };
 
@@ -112,6 +146,17 @@ export default function LegRaises() {
     wsRef.current = ws;
   };
 
+  // Convert base64 to Blob for audio playback
+  const base64ToBlob = (base64: string, mimeType: string) => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  };
+
   const startLegRaises = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       setErrorMessage(null);
@@ -119,6 +164,8 @@ export default function LegRaises() {
         JSON.stringify({
           action: "start",
           exercise: "LegRaises",
+          audiobot,
+          language,
         })
       );
     } else {
@@ -158,13 +205,13 @@ export default function LegRaises() {
           </div>
         )}
 
-        <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-900 rounded-lg overflow-hidden relative">
+        <div className="flex flex-col items-center justify-center h-[80vh] bg-gray-900 rounded-lg overflow-hidden relative">
           {frameSrc ? (
             <>
               <img
                 src={frameSrc}
                 alt="Webcam Feed"
-                className="max-h-full max-w-full border rounded-lg shadow-lg"
+                className="w-full h-full object-contain"
                 onError={() => setFrameSrc(null)}
               />
               {feedback && (
@@ -177,8 +224,7 @@ export default function LegRaises() {
                 </div>
               )}
               <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
-                {/* <p>Reps: {repCount}</p> */}
-                {/* <p>Prediction: {prediction || "N/A"}</p> */}
+                <p>Reps: {repCount}</p>
               </div>
             </>
           ) : (

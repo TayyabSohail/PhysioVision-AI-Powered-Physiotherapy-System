@@ -1,8 +1,11 @@
+// StartTherapy.tsx
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
 import { Sidebar } from "../sidebar/page";
+import { ToggleSwitch } from "../ToggleSwitch/page";
+import { useAudio } from "@/contexts/AudioContexts";
 
 interface Exercise {
   name: string;
@@ -11,11 +14,53 @@ interface Exercise {
 }
 
 export default function StartTherapy() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [flippedCards, setFlippedCards] = useState<{ [key: number]: boolean }>(
     {}
   );
+  const { audiobot, language, setAudiobot, setLanguage } = useAudio();
+
+  // Handle toggle state changes from ToggleSwitch
+  const handleToggleChange = ({
+    isEnabled,
+    isOriginalChecked,
+  }: {
+    isEnabled: boolean;
+    isOriginalChecked: boolean;
+  }) => {
+    if (isEnabled && !isOriginalChecked) {
+      setAudiobot("on");
+      setLanguage("en");
+      console.log("Audiobot turned ON, language set to English");
+    } else if (isEnabled && isOriginalChecked) {
+      setAudiobot("on");
+      setLanguage("ur");
+      console.log("Audiobot turned ON, language set to Urdu");
+    } else {
+      setAudiobot("off");
+      setLanguage("");
+      console.log("Audiobot turned OFF, language cleared");
+    }
+  };
+
+  const handleFlip = (idx: number, exerciseName: string) => {
+    // Original navigation logic
+    if (exerciseName === "Lunges") {
+      router.push("/frontend_vision/lunges_vision");
+    } else if (exerciseName === "Squats") {
+      router.push("/frontend_vision/squats_vision");
+    } else if (exerciseName === "Leg Raises") {
+      router.push("/frontend_vision/leg_raises");
+    } else if (exerciseName === "Warrior Pose") {
+      router.push("/frontend_vision/WarriorPose");
+    } else {
+      setFlippedCards((prev) => ({
+        ...prev,
+        [idx]: !prev[idx],
+      }));
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -44,23 +89,6 @@ export default function StartTherapy() {
     },
   ];
 
-  const handleFlip = (idx: number, exerciseName: string) => {
-    if (exerciseName === "Lunges") {
-      router.push("/frontend_vision/lunges_vision");
-    } else if (exerciseName === "Squats") {
-      router.push("/frontend_vision/squats_vision");
-    } else if (exerciseName === "Leg Raises") {
-      router.push("/frontend_vision/leg_raises");
-    } else if (exerciseName === "Warrior Pose") {
-      router.push("/frontend_vision/WarriorPose");
-    } else {
-      setFlippedCards((prev) => ({
-        ...prev,
-        [idx]: !prev[idx],
-      }));
-    }
-  };
-
   return (
     <div
       className="flex min-h-screen overflow-hidden bg-black"
@@ -82,7 +110,10 @@ export default function StartTherapy() {
               A personalized fitness companion designed to guide you every step
               of the way. From real-time posture corrections to detailed
               progress tracking, start your journey today with our AI-driven
-              support system.
+              support system. <br />
+              STATUS: The audiobot is {audiobot}
+              <br />
+              LANGUAGE: The selected language is {language}
             </p>
 
             <div className="space-y-4">
@@ -100,8 +131,6 @@ export default function StartTherapy() {
           </div>
 
           <div className="relative overflow-hidden w-full md:w-1/2 lg:w-2/3 xl:w-3/4 mt-[-90px]">
-            {" "}
-            {/* Adjust margin-top */}
             <video
               src="/videos/vision.mp4"
               autoPlay
@@ -114,6 +143,8 @@ export default function StartTherapy() {
             </video>
           </div>
         </div>
+
+        <ToggleSwitch onToggleChange={handleToggleChange} />
 
         {/* Bottom Section: Exercise Cards */}
         <div className="!mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full rounded-lg max-w-screen-4xl mx-auto">

@@ -1,6 +1,8 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "../../sidebar/page";
+import { useAudio } from "@/contexts/AudioContexts";
 
 export default function LungeVision() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,20 +20,41 @@ export default function LungeVision() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null); // Ref for audio element
   const MAX_RECONNECT_ATTEMPTS = 5;
   const [autoReconnect, setAutoReconnect] = useState(false);
+  const { audiobot, language } = useAudio();
+
+  // Initialize audio element
+  useEffect(() => {
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // WebSocket cleanup
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        console.log("Cleaning up WebSocket connection");
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
 
   const connectWebSocket = () => {
-    // Close any existing connection first
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      return;
     }
 
     setConnectionStatus("connecting");
     setErrorMessage(null);
 
-    // Fix: Remove '/ws' path segment as it's not defined in your server
     const ws = new WebSocket("ws://localhost:8765");
 
     ws.onopen = () => {
@@ -39,7 +62,6 @@ export default function LungeVision() {
       setConnectionStatus("connected");
       reconnectAttemptsRef.current = 0;
 
-      // Send explicit connect action after successful connection
       ws.send(JSON.stringify({ action: "connect" }));
     };
 
@@ -48,20 +70,17 @@ export default function LungeVision() {
         const data = JSON.parse(event.data);
         console.log("Received WebSocket message:", data);
 
-        if (data.type === "frame" && data.data) {
-          // Handle frame data
-          setFrameSrc(`data:image/jpeg;base64,${data.data}`);
+        if (data.type === "frame" && data.frame) {
+          setFrameSrc(`data:image/jpeg;base64,${data.frame}`);
           setGoodFormFrames(data.good_form_frames || 0);
           setFrameCount(data.frame_count || 0);
           setErrorCounts(data.error_counts || {});
           setIsRecording(data.recording || false);
 
-          // Determine current form status if data available
           if (data.error_counts) {
             const hasErrors = Object.keys(data.error_counts).length > 0;
 
             if (hasErrors) {
-              // Get the most recent error (highest count)
               const topError = Object.entries(data.error_counts).sort(
                 (a, b) => (b[1] as number) - (a[1] as number)
               )[0];
@@ -73,6 +92,22 @@ export default function LungeVision() {
             } else {
               setFeedback("Correct Form");
               setFormStatus("good");
+            }
+          }
+        } else if (data.type === "audio") {
+          if (data.audio_data && audiobot === "on") {
+            const audioBlob = base64ToBlob(data.audio_data, "audio/mpeg");
+            const audioUrl = URL.createObjectURL(audioBlob);
+            if (audioRef.current) {
+              audioRef.current.src = audioUrl;
+              audioRef.current.play().catch((e) => {
+                console.error("Audio playback error:", e);
+                setErrorMessage("Failed to play audio feedback.");
+              });
+              audioRef.current.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                audioRef.current!.onended = null;
+              };
             }
           }
         } else if (data.status) {
@@ -99,7 +134,6 @@ export default function LungeVision() {
         } else if (data.error) {
           setErrorMessage(data.error);
         } else if (data.type === "status") {
-          // Handle specific status messages
           if (data.message === "Not connected") {
             setConnectionStatus("disconnected");
             setErrorMessage("Server reports not connected. Try reconnecting.");
@@ -110,6 +144,7 @@ export default function LungeVision() {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        setErrorMessage("Error processing server message.");
       }
     };
 
@@ -117,7 +152,6 @@ export default function LungeVision() {
       console.log("WebSocket closed", event);
       setConnectionStatus("disconnected");
 
-      // Only attempt to reconnect if autoReconnect is true
       if (
         autoReconnect &&
         reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
@@ -144,16 +178,16 @@ export default function LungeVision() {
     wsRef.current = ws;
   };
 
-  // Cleanup function to ensure WebSocket is properly closed
-  useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        console.log("Cleaning up WebSocket connection");
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, []);
+  // Convert base64 to Blob for audio playback
+  const base64ToBlob = (base64: string, mimeType: string) => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  };
 
   const startLunges = () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -162,7 +196,14 @@ export default function LungeVision() {
     }
 
     setErrorMessage(null);
-    wsRef.current.send(JSON.stringify({ action: "start", exercise: "Lunges" }));
+    wsRef.current.send(
+      JSON.stringify({
+        action: "start",
+        exercise: "Lunges",
+        audiobot,
+        language,
+      })
+    );
   };
 
   const stopLunges = () => {
@@ -182,7 +223,6 @@ export default function LungeVision() {
 
   const disconnect = () => {
     if (wsRef.current) {
-      // Send disconnect message before closing
       if (wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ action: "disconnect" }));
       }
@@ -199,7 +239,7 @@ export default function LungeVision() {
 
   const manualConnect = () => {
     reconnectAttemptsRef.current = 0;
-    setAutoReconnect(false); // Disable auto reconnect by default
+    setAutoReconnect(false);
     connectWebSocket();
   };
 
@@ -230,19 +270,19 @@ export default function LungeVision() {
           </div>
         )}
 
-        <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-900 rounded-lg overflow-hidden relative">
+        <div className="flex flex-col items-center justify-center h-[80vh] bg-gray-900 rounded-lg overflow-hidden relative">
           {frameSrc ? (
             <>
               <img
                 src={frameSrc}
                 alt="Webcam Feed"
-                className="max-h-full max-w-full border rounded-lg shadow-lg"
+                className="w-full h-full object-contain"
                 onError={() => {
                   console.error("Image load error");
                   setFrameSrc(null);
                 }}
               />
-              {/* {feedback && (
+              {feedback && (
                 <div
                   className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-2 max-w-sm w-[90%] rounded-xl text-center text-base font-semibold backdrop-blur-md shadow-lg ${
                     formStatus === "good" ? "bg-green-500/70" : "bg-red-500/70"
@@ -250,12 +290,11 @@ export default function LungeVision() {
                 >
                   {feedback}
                 </div>
-              )} */}
+              )}
               <div className="absolute top-4 left-4 bg-black/50 p-2 rounded-lg text-white">
                 {isRecording ? (
                   <>
                     <p>Recording: {formatTime(frameCount)}</p>
-                    {/* <p>Good form: {calculateFormPercentage()}%</p> */}
                   </>
                 ) : (
                   <p>{frameCount > 0 ? `${formatTime(frameCount)}` : ""}</p>

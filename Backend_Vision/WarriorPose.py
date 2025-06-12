@@ -88,35 +88,26 @@ class WarriorPoseAnalyzer:
         shoulder_hip_angle = self.calculate_angle(l_shoulder, r_shoulder, r_hip)
 
         if not self.THRESHOLDS["front_knee_angle"][0] <= front_knee_angle <= self.THRESHOLDS["front_knee_angle"][1]:
-            errors.append("Bend your front knee more" if front_knee_angle > 100 else "Straighten your front knee slightly")
+            errors.append("Bend your front knee more." if front_knee_angle > 100 else "Straighten your front knee slightly.")
         if not self.THRESHOLDS["back_leg_angle"][0] <= back_leg_angle <= self.THRESHOLDS["back_leg_angle"][1]:
-            errors.append("Straighten your back leg" if back_leg_angle < 160 else "Relax your back leg slightly")
+            errors.append("Straighten your back leg." if back_leg_angle < 160 else "Relax your back leg slightly.")
         
         if not self.THRESHOLDS["hip_orientation"][0] <= hip_angle <= self.THRESHOLDS["hip_orientation"][1]:
             if front_hip == r_hip:
                 if r_hip[1] > l_hip[1]:
-                    errors.append("Level your hips; right hip is too high")
+                    errors.append("Level your hips; right hip is too high.")
                 else:
-                    errors.append("Level your hips; left hip is too high")
+                    errors.append("Level your hips; left hip is too high.")
             else:
                 if l_hip[1] > r_hip[1]:
-                    errors.append("Level your hips; left hip is too high")
+                    errors.append("Level your hips; left hip is too high.")
                 else:
-                    errors.append("Level your hips; right hip is too high")
+                    errors.append("Level your hips; right hip is too high.")
 
         if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
            not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
-            errors.append("Raise your arms to shoulder level" if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully")
-        
-        # Check if wrists are at shoulder level (y-coordinates)
-        l_shoulder_y, r_shoulder_y = l_shoulder[1], r_shoulder[1]
-        l_wrist_y, r_wrist_y = l_wrist[1], r_wrist[1]
+            errors.append("Raise your arms to shoulder level." if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully.")
 
-        shoulder_level_threshold = 0.05  # adjust based on how strict you want it
-
-        if abs(l_shoulder_y - l_wrist_y) > shoulder_level_threshold or \
-           abs(r_shoulder_y - r_wrist_y) > shoulder_level_threshold:
-            errors.append("Keep your arms at shoulder height")
         return errors[:3]
 
     def generate_report(self):
@@ -175,7 +166,7 @@ class WarriorPoseAnalyzer:
         # Process the frame with MediaPipe Pose
         results = self.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         annotated_frame = frame.copy()  # Create a copy to annotate
-
+        error_text = ""
         if results.pose_landmarks:
             self.mp_drawing.draw_landmarks(annotated_frame, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
             errors = self.check_warrior_pose(results.pose_landmarks.landmark)
@@ -185,7 +176,7 @@ class WarriorPoseAnalyzer:
             if self.frame_count > self.delay_frames and not self.recording:
                 self.recording = True
                 self.start_frame = self.frame_count
-            if self.recording and (self.frame_count - self.start_frame) <= self.record_frames:
+            if self.recording and (self.frame_count - self.start_frame): # <= self.record_frames: ### REMOVED BECAUSE THIS WAS FOR TESTING
                 if not errors:
                     self.report["good_form_frames"] += 1
                 for error in errors:
@@ -199,6 +190,21 @@ class WarriorPoseAnalyzer:
                     cv2.putText(annotated_frame, error, (10, 30 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             else:
                 cv2.putText(annotated_frame, "Correct Form", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            
+            ### TEXT TO SPEECH PORTION
+            # error_text = errors[0] if errors else "You are doing well."
+            error_text += errors[1] if errors[1]
+            if errors:
+                error_text = errors[0]
+                if errors[1]:
+                    error_text += errors[1]
+            else:
+                error_text = "You are doing well."
+
+
+        
+
+
 
         # Encode frame as base64 and return data
         frame_base64 = self._encode_frame(annotated_frame)
@@ -208,7 +214,8 @@ class WarriorPoseAnalyzer:
             "good_form_frames": self.report["good_form_frames"],
             "error_counts": self.report["error_counts"],
             "recording": self.recording,
-            "frame_count": self.frame_count - self.start_frame if self.recording else 0
+            "frame_count": self.frame_count - self.start_frame if self.recording else 0,
+            "error_text": error_text                ## ADDED FOR TTS
         }
 
     def _encode_frame(self, frame):

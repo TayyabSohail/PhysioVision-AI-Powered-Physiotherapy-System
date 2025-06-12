@@ -10,15 +10,8 @@ from squats import SquatAnalyzer  # Import SquatAnalyzer
 from WarriorPose import WarriorPoseAnalyzer
 from lunges_vision import LungesAnalyzer
 from legRaises import SLRExerciseAnalyzer 
-from pymongo import MongoClient
+from bark_tts import play_speech_directly
 
-logger = logging.getLogger(__name__)  # Assuming you use this logger
-
-# MongoDB setup (outside the class ideally, but okay here for simplicity)
-uri = "mongodb+srv://abdullahmasood450:harry_potter123@cluster0.ys9yt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-mongo_client = MongoClient(uri)
-mongo_db = mongo_client["PhysioVision"]
-mongo_collection = mongo_db["vision_reports"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +27,9 @@ class VideoServer:
         self.current_analyzer = None
         self.frame_processing_task = None
 
+        self.language=""
+        self.audiobot = ""
+
         # Initialize analyzers with SquatAnalyzer
         self.analyzers = {
             "Squats": SquatAnalyzer(),  
@@ -42,82 +38,174 @@ class VideoServer:
             "LegRaises": SLRExerciseAnalyzer()
         }
 
-async def process_frames(self, input_source=0):
-    """Centralized frame processing loop."""
-    try:
-        self.cap = cv2.VideoCapture(input_source)
-        if not self.cap.isOpened():
-            logger.error(f"Error: Could not open video source {input_source}")
-            await self._broadcast({"error": "Could not open video source"})
-            return
+    async def process_frames(self, input_source=0):
+        """Centralized frame processing loop with TTS error reporting."""
+        try:
+            self.cap = cv2.VideoCapture(input_source)
+            if not self.cap.isOpened():
+                logger.error(f"Error: Could not open video source {input_source}")
+                await self._broadcast({"error": "Could not open video source"})
+                return
 
-        logger.info("Started processing frames")
-        while self.running and self.cap.isOpened():
-            start_time = time.time()
+            # TTS-related state variables
+            self.last_error_text = None
+            self.error_hold_start_time = None
+            self.last_tts_time = 0
+            self.tts_repeat_interval = 10.0
+            self.error_tts_cooldown = 2.0
 
-            success, frame = self.cap.read()
-            if not success:
-                logger.info("End of video or camera disconnected")
-                await self._broadcast({"error": "Video source disconnected"})
-                break
+            logger.info("Started processing frames")
+            while self.running and self.cap.isOpened():
+                start_time = time.time()
 
-            # Process frame with the current analyzer if selected
+                success, frame = self.cap.read()
+                if not success:
+                    logger.info("End of video or camera disconnected")
+                    await self._broadcast({"error": "Video source disconnected"})
+                    break
+
+                if self.current_analyzer:
+                    try:
+                        processed_data = await self.current_analyzer.process_video(frame)
+
+                        if processed_data:
+                            # --- TTS Error Monitoring Logic ---
+                            error_text = processed_data.get("error_text", "").strip()
+                            current_time = time.time()
+
+                            if error_text:
+                                if error_text != self.last_error_text:
+                                    self.last_error_text = error_text
+                                    self.error_hold_start_time = current_time
+                                    self.last_tts_time = 0
+                                
+                                time_held = current_time - self.error_hold_start_time
+                                time_since_last_tts = current_time - self.last_tts_time
+                                
+                                if (time_held >= self.error_tts_cooldown and 
+                                    (self.last_tts_time == 0 or 
+                                    time_since_last_tts >= self.tts_repeat_interval)):
+                                    
+                                    if self.audiobot != "off":
+                                        # Generate audio and send to frontend
+                                        tts_result = await play_speech_directly(error_text, self.language)
+                                        if tts_result["audio_data"]:
+                                            await self._broadcast({
+                                                "type": "audio",
+                                                "audio_data": tts_result["audio_data"]
+                                            })
+                                            self.last_tts_time = current_time
+                                        if tts_result["error"]:
+                                            logger.error(tts_result["error"])
+
+                            else:
+                                self.last_error_text = None
+                                self.error_hold_start_time = None
+                                self.last_tts_time = 0
+
+                            await self._broadcast(processed_data)
+
+                    except Exception as e:
+                        logger.error(f"Error processing frame: {e}")
+                        await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+
+                processing_time = time.time() - start_time
+                await asyncio.sleep(max(0, 0.033 - processing_time))
+
+        except Exception as e:
+            logger.error(f"Error during frame processing: {e}")
+            await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+        finally:
+            if self.cap:
+                self.cap.release()
+                self.cap = None
+
             if self.current_analyzer:
                 try:
-                    processed_data = await self.current_analyzer.process_video(frame)
-                    if processed_data:
-                        await self._broadcast(processed_data)
+                    report = self.current_analyzer.generate_report()
+                    if report is not None:
+                        print("\n" + report)
+                        with open('report.txt', 'w') as f:
+                            f.write(report)
+                        await self._broadcast({"type": "report", "data": report})
+                    else:
+                        logger.warning("No report was generated (returned None)")
                 except Exception as e:
-                    logger.error(f"Error processing frame: {e}")
-                    await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+                    logger.error(f"Error generating report: {e}")
 
-            # Maintain ~30 FPS
-            processing_time = time.time() - start_time
-            await asyncio.sleep(max(0, 0.033 - processing_time))  # Target ~30fps
+            logger.info("Video processing stopped")
+            await self._broadcast({"status": "stopped"})
 
-    except Exception as e:
-        logger.error(f"Error during frame processing: {e}")
-        await self._broadcast({"error": f"Frame processing error: {str(e)}"})
-    finally:
-        if self.cap:
-            self.cap.release()
-            self.cap = None
+    def set_language(self, language_code: str):
+        """Set the language for TTS playback."""
+        supported_languages = ["en", "ur"]
+        if language_code in supported_languages:
+            self.language = language_code
+            logger.info(f"TTS language set to {language_code}")
+        else:
+            logger.warning(f"Unsupported language: {language_code}")
 
-        # Generate report if analyzer exists
-        if self.current_analyzer:
-            try:
-                report = self.current_analyzer.generate_report()
-                if report is not None:
-                    print("\n" + report)
-                    with open('report.txt', 'w') as f:
-                        f.write(report)
-                    
-                    # Send report to clients
-                    await self._broadcast({"type": "report", "data": report})
 
-                    # Save report to MongoDB
-                    try:
-                        report_doc = {
-                            "filename": "report.txt",
-                            "content": report,
-                            "timestamp": datetime.datetime.utcnow(),
-                            "exercise": "Warrior II",  # Or extract dynamically
-                            "source": str(input_source),
-                            "analyzer": self.current_analyzer.__class__.__name__
-                        }
-                        mongo_collection.insert_one(report_doc)
-                        logger.info("Report successfully saved to MongoDB.")
-                    except Exception as mongo_err:
-                        logger.error(f"Error saving report to MongoDB: {mongo_err}")
+    # async def process_frames(self, input_source=0):
+    #     """Centralized frame processing loop."""
+    #     try:
+    #         self.cap = cv2.VideoCapture(input_source)
+    #         if not self.cap.isOpened():
+    #             logger.error(f"Error: Could not open video source {input_source}")
+    #             await self._broadcast({"error": "Could not open video source"})
+    #             return
 
-                else:
-                    logger.warning("No report was generated (returned None)")
-            except Exception as e:
-                logger.error(f"Error generating report: {e}")
+    #         logger.info("Started processing frames")
+    #         while self.running and self.cap.isOpened():
+    #             start_time = time.time()
 
-        logger.info("Video processing stopped")
-        # Notify clients that processing has stopped
-        await self._broadcast({"status": "stopped"})            
+    #             success, frame = self.cap.read()
+    #             if not success:
+    #                 logger.info("End of video or camera disconnected")
+    #                 await self._broadcast({"error": "Video source disconnected"})
+    #                 break
+
+    #             # Process frame with the current analyzer if selected
+    #             if self.current_analyzer:
+    #                 try:
+    #                     processed_data = await self.current_analyzer.process_video(frame)
+    #                     if processed_data:
+    #                         await self._broadcast(processed_data)
+    #                 except Exception as e:
+    #                     logger.error(f"Error processing frame: {e}")
+    #                     await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+
+    #             # Maintain ~30 FPS
+    #             processing_time = time.time() - start_time
+    #             await asyncio.sleep(max(0, 0.033 - processing_time))  # Target ~30fps
+
+    #     except Exception as e:
+    #         logger.error(f"Error during frame processing: {e}")
+    #         await self._broadcast({"error": f"Frame processing error: {str(e)}"})
+    #     finally:
+    #         if self.cap:
+    #             self.cap.release()
+    #             self.cap = None
+            
+    #         # Generate report if analyzer exists
+    #         if self.current_analyzer:
+    #             try:
+    #                 report = self.current_analyzer.generate_report()
+    #                 if report is not None:
+    #                     print("\n" + report)
+    #                     with open('report.txt', 'w') as f:
+    #                         f.write(report)
+    #                     # Send report to clients
+    #                     await self._broadcast({"type": "report", "data": report})
+    #                 else:
+    #                     logger.warning("No report was generated (returned None)")
+    #             except Exception as e:
+    #                 logger.error(f"Error generating report: {e}")
+            
+    #         logger.info("Video processing stopped")
+    #         # Notify clients that processing has stopped
+    #         await self._broadcast({"status": "stopped"})
+            
     async def _broadcast(self, message):
         """Broadcast a message to all connected clients."""
         if not self.clients:
@@ -160,6 +248,10 @@ async def process_frames(self, input_source=0):
                     data = json.loads(message)
                     action = data.get('action')
                     exercise = data.get('exercise')
+                    self.language = data.get("language")
+                    print(self.language, "This is language value")
+                    self.audiobot = data.get("audiobot")
+                    print(self.audiobot, "This is audiobot value")
                     logger.info(f"Received action: {action}, exercise: {exercise}")
 
                     if action == 'connect':

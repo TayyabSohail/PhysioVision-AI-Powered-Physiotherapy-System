@@ -1,18 +1,12 @@
 
 --- Lunges Exercise Report ---
-Total Recorded Time: 40.50 seconds
+Total Recorded Time: 3.33 seconds
 Good Form Duration: 0.00 seconds (0.0%)
-Repetitions Completed: 7/8
+Repetitions Completed: 0/8
 
 Errors Detected:
-  - 'Bend back knee more': 703 frames (23.43 seconds, 57.9%)
-  - 'Bend front knee more': 667 frames (22.23 seconds, 54.9%)
-  - 'Move fully into camera view': 501 frames (16.70 seconds, 41.2%)
-  - 'Keep torso upright': 394 frames (13.13 seconds, 32.4%)
-  - 'Front knee past toes': 324 frames (10.80 seconds, 26.7%)
-  - 'Front knee bent too much': 8 frames (0.27 seconds, 0.7%)
-  - 'Increase stance width': 4 frames (0.13 seconds, 0.3%)
+  - 'Move fully into camera view': 101 frames (3.37 seconds, 101.0%)
 
 Areas to Focus On:
-  - Work on proper knee alignment and depth
+  - Practice proper form for: Move fully into camera view
 --------------------------------

@@ -9,7 +9,7 @@ import base64
 logger = logging.getLogger(__name__)
 
 class SLRExerciseAnalyzer:
-    def __init__(self, exercise="straight_leg_raises_rehab", delay_seconds=8, target_reps = 8, fps=30):
+    def __init__(self, exercise="straight_leg_raises_rehab", delay_seconds=3, target_reps = 8, fps=30):
         # Initialize MediaPipe Pose
         self.mp_pose = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
@@ -111,15 +111,15 @@ class SLRExerciseAnalyzer:
         leg_angle = self.calculate_angle(r_shoulder, r_hip, r_knee)
 
         if affected_leg_angle < 160:
-            errors.append("Keep your leg straight")
+            errors.append("Keep your leg straight.")
         if leg_angle < 120:
-            errors.append("Leg too high")
+            errors.append("Leg is too high.")
 
         if self.is_above_30:
             self.peak_leg_angle = min(self.peak_leg_angle, leg_angle)
 
         if self.shallow_rep_detected == True:
-            errors.append("Shallow rep, raise leg higher next time")
+            errors.append("Shallow rep, raise leg higher next time.")
         
         # Rep counting logic
         if leg_angle < 140 and not self.is_above_30:
@@ -158,6 +158,7 @@ class SLRExerciseAnalyzer:
         # Process the frame with MediaPipe Pose
         results = self.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         annotated_frame = frame.copy()  # Create a copy to annotate
+        error_text = ""
 
         if results.pose_landmarks:
             self.mp_drawing.draw_landmarks(annotated_frame, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
@@ -194,6 +195,19 @@ class SLRExerciseAnalyzer:
 
                 # Display rep count
                 cv2.putText(annotated_frame, f"Reps: {self.reps}/{self.target_reps}", (10, annotated_frame.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            ### TEXT TO SPEECH PORTION
+                # error_text = errors[0] if errors else "You are doing well."
+                error_text += errors[1] if errors[1]
+                if errors:
+                    error_text = errors[0]
+                    if errors[1]:
+                        error_text += errors[1]
+                else:
+                    error_text = "You are doing well."
+
+
+        
+
 
         # Encode frame as base64 and return data
         frame_base64 = self._encode_frame(annotated_frame)
@@ -205,7 +219,8 @@ class SLRExerciseAnalyzer:
             "good_form_frames": self.report["good_form_frames"],
             "error_counts": self.report["error_counts"],
             "recording": self.recording,
-            "frame_count": self.frame_count - self.start_frame if self.recording else 0
+            "frame_count": self.frame_count - self.start_frame if self.recording else 0,
+            "error_text": error_text
         }
 
     def _encode_frame(self, frame):

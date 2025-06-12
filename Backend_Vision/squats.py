@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 class SquatAnalyzer:
 #    def __init__(self, model_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib", label_encoder_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib" , window_size=30):
-    def __init__(self, model_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib", label_encoder_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib" , window_size=30):
+    def __init__(self, model_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib", label_encoder_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib" , window_size=30):
 
         """Initialize the squat analyzer with trained model and preprocessing tools"""
         # Load model and preprocessing tools
@@ -109,7 +109,7 @@ class SquatAnalyzer:
             'bad_inner_thigh': "Knees collapsing inward. Keep knees aligned with toes.",
             'bad_shallow': "Squat is too shallow. Try to go deeper with proper form.",
             'bad_toe': "Foot positioning issue. Keep feet shoulder-width apart with toes slightly turned out.",
-            'good': "Good form! Keep it up."
+            'good': "You are doing well. very good."
         }
 
 
@@ -385,46 +385,33 @@ class SquatAnalyzer:
 
 
 
-    # def _update_rep_count(self, current_depth):
-    #     """Update squat state and count reps based on squat depth"""
-    #     # Use average of left and right squat depth for consistency
-    #     avg_depth = (current_depth['left_squat_depth'] + current_depth['right_squat_depth']) / 2
-    #     self.depth_history.append(avg_depth)
-
-    #     # Update min and max depths dynamically
-    #     if len(self.depth_history) == self.depth_history.maxlen:
-    #         current_min = min(self.depth_history)
-    #         current_max = max(self.depth_history)
-            
-    #         if self.min_depth is None or current_min < self.min_depth:
-    #             self.min_depth = current_min
-    #         if self.max_depth is None or current_max > self.max_depth:
-    #             self.max_depth = current_max
-
-    #         # Calculate dynamic threshold
-    #         if self.min_depth is not None and self.max_depth is not None:
-    #             depth_range = self.max_depth - self.min_depth
-    #             threshold = self.min_depth + (depth_range * self.depth_threshold_factor)
-
-    #             # State transitions
-    #             if self.state == 'STANDING' and avg_depth < threshold:
-    #                 self.state = 'SQUATTING'
-    #             elif self.state == 'SQUATTING' and avg_depth > threshold:
-    #                 self.state = 'STANDING'
-    #                 self.rep_count += 1  # Count a rep when returning to standing
-
     def _update_rep_count(self, current_depth):
+        """Update squat state and count reps based on squat depth"""
+        # Use average of left and right squat depth for consistency
         avg_depth = (current_depth['left_squat_depth'] + current_depth['right_squat_depth']) / 2
-    
-        # Allow small margin above knees
-        squat_threshold = -0.1
-    
-        if self.state == 'STANDING' and avg_depth >= squat_threshold:
-            self.state = 'SQUATTING'
-    
-        elif self.state == 'SQUATTING' and avg_depth < squat_threshold:
-            self.state = 'STANDING'
-            self.rep_count += 1
+        self.depth_history.append(avg_depth)
+
+        # Update min and max depths dynamically
+        if len(self.depth_history) == self.depth_history.maxlen:
+            current_min = min(self.depth_history)
+            current_max = max(self.depth_history)
+            
+            if self.min_depth is None or current_min < self.min_depth:
+                self.min_depth = current_min
+            if self.max_depth is None or current_max > self.max_depth:
+                self.max_depth = current_max
+
+            # Calculate dynamic threshold
+            if self.min_depth is not None and self.max_depth is not None:
+                depth_range = self.max_depth - self.min_depth
+                threshold = self.min_depth + (depth_range * self.depth_threshold_factor)
+
+                # State transitions
+                if self.state == 'STANDING' and avg_depth < threshold:
+                    self.state = 'SQUATTING'
+                elif self.state == 'SQUATTING' and avg_depth > threshold:
+                    self.state = 'STANDING'
+                    self.rep_count += 1  # Count a rep when returning to standing
 
     def _update_error_counts(self, prediction):
         """Update the count of the current prediction/error"""
@@ -561,15 +548,23 @@ class SquatAnalyzer:
         # Update rep count with current features
         self._update_rep_count(features)
 
+        ### TEXT TO SPEECH
+        error_text = self.current_prediction
+        if error_text == "good":
+            error_text = "You are doing well"
+        elif error_text in self.error_explanations:
+            error_text = self.error_explanations[error_text]
+
         # Encode frame as base64 and return data
         if annotated_frame is not None:
             frame_base64 = self._encode_frame(annotated_frame)
             return {
                 "type": "frame",
                 "data": frame_base64,
-                "prediction": self.current_prediction,
+                "prediction": error_text,
                 "confidence": self.prediction_confidence,
-                "rep_count": self.rep_count
+                "rep_count": self.rep_count,
+                "error_text": error_text
             }
 
         return None  # If no data to broadcast
