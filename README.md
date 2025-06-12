@@ -117,7 +117,7 @@ ________________________________________________________________________________
 * py -3.10 -m venv backend_env_310 (IF ALREADY CREATED THEN DON'T)
 * backend_env_310\Scripts\activate
 * pip install -r requirements.txt
-* python (file_name).py
+* python main.py
 
 _____________________________________________________________________________________________________
 # COMPLETE DEMO
