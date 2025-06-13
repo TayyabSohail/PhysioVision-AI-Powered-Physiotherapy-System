@@ -195,19 +195,13 @@ class SLRExerciseAnalyzer:
 
                 # Display rep count
                 cv2.putText(annotated_frame, f"Reps: {self.reps}/{self.target_reps}", (10, annotated_frame.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-            ### TEXT TO SPEECH PORTION
-                # error_text = errors[0] if errors else "You are doing well."
-                error_text += errors[1] if errors[1]
+                ### TEXT TO SPEECH PORTION
                 if errors:
                     error_text = errors[0]
-                    if errors[1]:
-                        error_text += errors[1]
+                    if len(errors) > 1:
+                        error_text += " " + errors[1]
                 else:
                     error_text = "You are doing well."
-
-
-        
-
 
         # Encode frame as base64 and return data
         frame_base64 = self._encode_frame(annotated_frame)

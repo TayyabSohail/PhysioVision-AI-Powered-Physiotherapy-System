@@ -358,8 +358,8 @@ class LungesAnalyzer:
 
         # Thresholds for lunges
         self.LUNGE_THRESHOLDS = {
-            "knee_angle": (80, 100),  # Front knee should be around 90 degrees
-            "back_knee_angle": (75, 115),  # Back knee angle
+            "knee_angle": (75, 110),  # Front knee should be around 90 degrees
+            "back_knee_angle": (75, 120),  # Back knee angle
             "torso_uprightness": (70, 110),  # Torso should be upright
             "stance_width": (0.2, 0.6),  # Distance between feet (normalized)
             "hip_level": (0, 0.15),  # Hip should be level (relative displacement)
@@ -493,32 +493,32 @@ class LungesAnalyzer:
         # Form checks - use thresholds from the LUNGE_THRESHOLDS dictionary
         min_knee_angle, max_knee_angle = self.LUNGE_THRESHOLDS["knee_angle"]
         if front_knee_angle > max_knee_angle:
-            errors.append("Bend front knee more.")
+            errors.append("Bend front knee more")
         elif front_knee_angle < min_knee_angle:
-            errors.append("Front knee bent too much.")
+            errors.append("Front knee bent too much")
             
         if knee_past_toe:
             errors.append("Front knee past toes")
             
         min_back_knee, max_back_knee = self.LUNGE_THRESHOLDS["back_knee_angle"]
         if back_knee_angle > max_back_knee:
-            errors.append("Bend back knee more.")
+            errors.append("Bend back knee more")
         elif back_knee_angle < min_back_knee:
-            errors.append("Back knee bent too much.")
+            errors.append("Back knee bent too much")
             
-        min_torso, max_torso = self.LUNGE_THRESHOLDS["torso_uprightness"]
-        if torso_angle < min_torso or torso_angle > max_torso:
-            errors.append("Keep torso upright")
+        #min_torso, max_torso = self.LUNGE_THRESHOLDS["torso_uprightness"]
+        #if torso_angle < min_torso or torso_angle > max_torso:
+        #    errors.append("Keep torso upright")
             
-        _, max_hip_diff = self.LUNGE_THRESHOLDS["hip_level"]
-        if hip_level_diff > max_hip_diff:
-            errors.append("Keep hips level")
+       # _, max_hip_diff = self.LUNGE_THRESHOLDS["hip_level"]
+        #if hip_level_diff > max_hip_diff:
+         #   errors.append("Keep hips level")
             
-        min_stance, max_stance = self.LUNGE_THRESHOLDS["stance_width"]
-        if stance_width < min_stance:
-            errors.append("Increase stance width.")
-        elif stance_width > max_stance:
-            errors.append("Reduce stance width.")
+        #min_stance, max_stance = self.LUNGE_THRESHOLDS["stance_width"]
+        #if stance_width < min_stance:
+         #   errors.append("Increase stance width")
+        #elif stance_width > max_stance:
+        #    errors.append("Reduce stance width")
         
         # Track front knee angle for rep detection
         self.knee_angles_history.append(front_knee_angle)
@@ -639,14 +639,7 @@ class LungesAnalyzer:
                     cv2.putText(annotated_frame, f"Reps: {self.reps}/{self.target_reps}", (10, annotated_frame.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
                     ## TEXT TO SPEECH PORTION
-                    # error_text = errors[0] if errors else "You are doing well."
-                    error_text += errors[1] if errors[1]
-                    if errors:
-                        error_text = errors[0]
-                        if errors[1]:
-                            error_text += errors[1]
-                    else:
-                        error_text = "You are doing well."
+                    error_text = errors[0] if errors else "You are doing well"#
 
 
 

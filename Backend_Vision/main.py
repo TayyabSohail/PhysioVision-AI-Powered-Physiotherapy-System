@@ -51,7 +51,7 @@ class VideoServer:
             self.last_error_text = None
             self.error_hold_start_time = None
             self.last_tts_time = 0
-            self.tts_repeat_interval = 10.0
+            self.tts_repeat_interval = 5.0
             self.error_tts_cooldown = 2.0
 
             logger.info("Started processing frames")
@@ -70,7 +70,9 @@ class VideoServer:
 
                         if processed_data:
                             # --- TTS Error Monitoring Logic ---
-                            error_text = processed_data.get("error_text", "").strip()
+                            error_text = processed_data.get("error_text", "") or ""
+                            if error_text:
+                                error_text = error_text.strip()
                             current_time = time.time()
 
                             if error_text:

@@ -1,1 +1,12 @@
-No exercise session recorded yet.
+
+--- Lunges Exercise Report ---
+Total Recorded Time: 3.53 seconds
+Good Form Duration: 0.00 seconds (0.0%)
+Repetitions Completed: 0/8
+
+Errors Detected:
+  - 'Move fully into camera view': 107 frames (3.57 seconds, 100.9%)
+
+Areas to Focus On:
+  - Practice proper form for: Move fully into camera view
+--------------------------------

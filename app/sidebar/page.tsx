@@ -97,7 +97,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
       {/* Logout Button */}
       <div className="mt-auto">
-        <Link href="/logout" passHref>
+        <Link href="/" passHref>
           <div className="flex items-center p-3 rounded-md text-lg font-medium text-red-500 hover:bg-opacity-90 hover:text-white hover:shadow-md transition-all duration-200 ease-in-out">
             <span className="mr-3 text-xl">
               <LogoutOutlined />

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 class SquatAnalyzer:
 #    def __init__(self, model_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib", label_encoder_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib" , window_size=30):
-    def __init__(self, model_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib", label_encoder_path = r"D:\Abds work\S8\FYP 2\FYYP_MID EVAL\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib" , window_size=30):
+    def __init__(self, model_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\best_squat_model.keras", scaler_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_scaler.joblib", label_encoder_path = r"E:\IMPORTED FROM C\Desktop\Website_PhysioVision\PhysioVision\Backend_Vision\models_vision\preprocessed_data_label_encoder.joblib" , window_size=30):
 
         """Initialize the squat analyzer with trained model and preprocessing tools"""
         # Load model and preprocessing tools
@@ -109,7 +109,7 @@ class SquatAnalyzer:
             'bad_inner_thigh': "Knees collapsing inward. Keep knees aligned with toes.",
             'bad_shallow': "Squat is too shallow. Try to go deeper with proper form.",
             'bad_toe': "Foot positioning issue. Keep feet shoulder-width apart with toes slightly turned out.",
-            'good': "You are doing well. very good."
+            'good': "Good form! Keep it up."
         }
 
 
@@ -460,9 +460,61 @@ class SquatAnalyzer:
         
         return image
 
+    async def process_video(self, frame):
+        """Process a single frame and return data to broadcast."""
+        # Process the frame
+        if frame is None:
+            print("Warning: Received None frame")
+            return None
 
+        features, annotated_frame = self._process_frame(frame)
 
+        # If no pose detected
+        if features is None:
+            frame_base64 = self._encode_frame(frame)
+            return {
+                "type": "frame",
+                "data": frame_base64,
+                "prediction": None,
+                "confidence": None,
+                "rep_count": self.rep_count
+            }
 
+        # Make prediction if enough frames collected
+        if len(self.features_buffer) >= self.window_size:
+            print("line k oooper")
+            new_prediction, new_confidence = self._make_prediction()
+            print("line k neeche")
+            self.current_prediction, self.prediction_confidence = self._smooth_predictions(
+                new_prediction, new_confidence)
+            if self.current_prediction is not None:
+                self._update_error_counts(self.current_prediction)
+
+        # Update rep count with current features
+        self._update_rep_count(features)
+
+        ### TEXT TO SPEECH
+        error_text = self.current_prediction
+
+        # Add None check here
+        if error_text is None:
+            error_text = "Processing..."
+        elif error_text == "good":
+            error_text = "You are doing well" 
+        elif error_text in self.error_explanations:
+            error_text = self.error_explanations[error_text]
+            # Add safety check for the dictionary value
+            if error_text is None:
+                error_text = "Unknown error"
+        
+        # Encode frame as base64 and return data
+        # Draw feedback on the frame BEFORE encoding
+        if annotated_frame is not None:
+            annotated_frame = self.draw_feedback(annotated_frame, self.current_prediction, self.prediction_confidence)
+            frame_base64 = self._encode_frame(annotated_frame)
+
+        return None  # If no data to broadcast
+    
     def generate_report(self):
         """Generate a report summarizing reps and error occurrences"""
         report = f"Squat Analysis Report - {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
@@ -555,6 +607,7 @@ class SquatAnalyzer:
         elif error_text in self.error_explanations:
             error_text = self.error_explanations[error_text]
 
+        
         # Encode frame as base64 and return data
         if annotated_frame is not None:
             frame_base64 = self._encode_frame(annotated_frame)
@@ -569,4 +622,5 @@ class SquatAnalyzer:
 
         return None  # If no data to broadcast
 
+                
         
