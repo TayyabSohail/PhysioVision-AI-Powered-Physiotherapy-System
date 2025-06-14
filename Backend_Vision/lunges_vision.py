@@ -8,7 +8,7 @@ import base64
 
 logger = logging.getLogger(__name__)
 class LungesAnalyzer:
-    def __init__(self):
+    def __init__(self, exercise="Lunges", delay_seconds=3, target_reps=8, fps=30):
         # Initialize MediaPipe Pose
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(
@@ -24,12 +24,57 @@ class LungesAnalyzer:
         self.pca = None
         self.model = None
         self.is_trained = False
+
+         # Rep counting variables
+        self.reps = 0
+        self.in_lunge_position = False
+        self.lunge_depth_threshold = 0.05  # Threshold for detecting rep
+        self.prev_knee_angle = None
+        self.start_frame = 0
+        
+        # Depth tracking
+        self.max_knee_bend = 180
+        self.shallow_rep_detected = False
+        
+        # Track movement direction for better rep counting
+        self.knee_angles_history = []
+        self.direction = None  # 'down' or 'up'
+        self.phase_frames = 0
+        
+        # Visibility threshold for landmarks
+        self.visibility_threshold = 0.6
         
         # Define the landmarks we're interested in (hip, knee, ankle only)
         self.target_landmarks = [
             'LEFT_HIP', 'LEFT_KNEE', 'LEFT_ANKLE',
             'RIGHT_HIP', 'RIGHT_KNEE', 'RIGHT_ANKLE'
         ]
+
+        # Set exercise type
+        self.exercise = exercise
+
+        # Thresholds for lunges
+        self.LUNGE_THRESHOLDS = {
+            "knee_angle": (75, 110),  # Front knee should be around 90 degrees
+            "back_knee_angle": (75, 120),  # Back knee angle
+            "torso_uprightness": (70, 110),  # Torso should be upright
+            "stance_width": (0.2, 0.6),  # Distance between feet (normalized)
+            "hip_level": (0, 0.15),  # Hip should be level (relative displacement)
+        }
+
+        # Recording and rep counting settings
+        self.fps = fps
+        self.delay_frames = delay_seconds * fps  # delay before correction
+        self.target_reps = target_reps  # Number of reps to detect
+        self.frame_count = 0
+        self.recording = False  # Now indicates correction active
+        self.report = {
+            "good_form_frames": 0,
+            "error_counts": defaultdict(int)
+        }
+        self.standing_error_counter = 0
+        self.standing_error_threshold = int(5 * self.fps)
+           
         
     def extract_keypoints(self, frame):
         """Extract hip, knee, and ankle keypoints from a single frame."""
@@ -138,160 +183,19 @@ class LungesAnalyzer:
         except Exception as e:
             print(f"Error loading model: {e}")
 
-
-
     def reset_counters(self):
         """Reset counters and data storage."""
         self.frame_count = 0
         self.frames_keypoints = []
         self.features_data = []
 
-    async def process_video(self, frame):
-        """Process a single frame and return data to broadcast."""
-        if not self.is_trained:
-            logger.error("Model not trained. Please train or load a model first.")
-            return {"type": "error", "message": "Model not trained"}
-
-        self.frame_count += 1
-        annotated_frame = frame.copy()
-
-        # Process the frame
-        is_correct, feedback, features, errors = self.detect_form(annotated_frame)
-
-        # Draw the pose on the frame
-        frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-        results = self.pose.process(frame_rgb)
-        annotated_frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-
-        if results.pose_landmarks:
-            # Extract landmarks and leading leg information
-            leading_leg = features.get('leading_leg', 'Unknown') if features else 'Unknown'
-
-            # Custom drawing to highlight only hips, knees, ankles
-            landmarks = results.pose_landmarks
-
-            # Create a custom connection list for hip-knee-ankle
-            custom_connections = [
-                (self.mp_pose.PoseLandmark.LEFT_HIP, self.mp_pose.PoseLandmark.LEFT_KNEE),
-                (self.mp_pose.PoseLandmark.LEFT_KNEE, self.mp_pose.PoseLandmark.LEFT_ANKLE),
-                (self.mp_pose.PoseLandmark.RIGHT_HIP, self.mp_pose.PoseLandmark.RIGHT_KNEE),
-                (self.mp_pose.PoseLandmark.RIGHT_KNEE, self.mp_pose.PoseLandmark.RIGHT_ANKLE),
-            ]
-
-            # Highlight the leading leg with a different color
-            left_color = (0, 255, 0) if leading_leg == "Left" else (255, 0, 0)  # Green for leading, blue for back
-            right_color = (0, 255, 0) if leading_leg == "Right" else (255, 0, 0)
-
-            # Draw only the landmarks we care about
-            landmark_ids = [
-                (self.mp_pose.PoseLandmark.LEFT_HIP, left_color),
-                (self.mp_pose.PoseLandmark.LEFT_KNEE, left_color),
-                (self.mp_pose.PoseLandmark.LEFT_ANKLE, left_color),
-                (self.mp_pose.PoseLandmark.RIGHT_HIP, right_color),
-                (self.mp_pose.PoseLandmark.RIGHT_KNEE, right_color),
-                (self.mp_pose.PoseLandmark.RIGHT_ANKLE, right_color)
-            ]
-
-            for landmark_id, color in landmark_ids:
-                landmark = landmarks.landmark[landmark_id]
-                h, w, c = annotated_frame.shape
-                cx, cy = int(landmark.x * w), int(landmark.y * h)
-                cv2.circle(annotated_frame, (cx, cy), 10, color, -1)
-
-            # Draw connections with correct colors
-            for connection in [
-                (self.mp_pose.PoseLandmark.LEFT_HIP, self.mp_pose.PoseLandmark.LEFT_KNEE, left_color),
-                (self.mp_pose.PoseLandmark.LEFT_KNEE, self.mp_pose.PoseLandmark.LEFT_ANKLE, left_color),
-                (self.mp_pose.PoseLandmark.RIGHT_HIP, self.mp_pose.PoseLandmark.RIGHT_KNEE, right_color),
-                (self.mp_pose.PoseLandmark.RIGHT_KNEE, self.mp_pose.PoseLandmark.RIGHT_ANKLE, right_color),
-            ]:
-                start_idx = connection[0].value
-                end_idx = connection[1].value
-                connection_color = connection[2]
-
-                start = landmarks.landmark[start_idx]
-                end = landmarks.landmark[end_idx]
-
-                h, w, c = annotated_frame.shape
-                start_point = (int(start.x * w), int(start.y * h))
-                end_point = (int(end.x * w), int(end.y * h))
-
-                cv2.line(annotated_frame, start_point, end_point, connection_color, 3)
-
-        # Display leading leg information
-        if features and 'leading_leg' in features:
-            cv2.putText(annotated_frame, f"Leading Leg: {features['leading_leg']}", 
-                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-
-        # Display feedback
-        color = (0, 255, 0) if is_correct else (0, 0, 255)
-        cv2.putText(annotated_frame, feedback, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
-        # Display errors with visual indicators
-        if errors:
-            y_pos = 90
-            for feature_name, error_info in errors.items():
-                message = error_info["message"]
-                cv2.putText(annotated_frame, message, (10, y_pos), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-                y_pos += 30
-                # Log errors for report
-                if message not in self.errors_log:
-                    self.errors_log[message] = 0
-                self.errors_log[message] += 1
-
-        # Display features if available
-        if features:
-            h, w, c = annotated_frame.shape
-            y_pos = h - 150  # Start from bottom of frame
-            for feature_name, feature_value in features.items():
-                if feature_name == 'leading_leg':
-                    continue
-                if isinstance(feature_value, (int, float)):
-                    value_str = f"{feature_value:.1f}"
-                else:
-                    value_str = str(feature_value)
-                cv2.putText(annotated_frame, f"{feature_name}: {value_str}", (10, y_pos), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                y_pos += 20
-
-        # Track correct frames
-        correct_return = "Incorrect"
-        if is_correct:
-            self.correct_frames += 1
-            correct_return = "Correct"
-
-        # Encode frame as base64 and return data
-        frame_base64 = self._encode_frame(annotated_frame)
-        return {
-            "type": "frame",
-            "data": frame_base64,
-            "is_correct": correct_return,
-            "feedback": feedback,
-            "errors": errors,
-        }
 
     def _encode_frame(self, frame):
         """Encode frame as base64."""
         _, buffer = cv2.imencode('.jpg', frame)
         return base64.b64encode(buffer).decode('utf-8')
 
-    def generate_report(self):
-        """Generate and return an exercise report."""
-        report = "\n--- Lunges Exercise Report ---\n"
-        report += f"Total Frames Processed: {self.frame_count}\n"
-        report += f"Frames with Keypoints Detected: {len(self.frames_keypoints)}\n"
-        if self.features_data:
-            report += "Feature Summary (example):\n"
-            # Add summary stats if desired, e.g., average depth or knee angle
-            for i, features in enumerate(self.features_data[:5]):  # Limit to first 5 for brevity
-                report += f"  - Frame {i+1}: {features}\n"
-            if len(self.features_data) > 5:
-                report += f"  - ...and {len(self.features_data) - 5} more frames\n"
-        else:
-            report += "No features calculated (no keypoints detected).\n"
-        report += "--------------------------------\n"
-        return report
+  
     
     def detect_form(self, frame):
         """Detect lunge form in a single frame."""
@@ -344,56 +248,7 @@ class LungesAnalyzer:
             feedback = "Good form!"
         
         return is_correct, feedback, features, errors
-    def __init__(self, exercise="Lunges", delay_seconds=3, target_reps=8, fps=30):
-        # Initialize MediaPipe Pose
-        self.mp_pose = mp.solutions.pose
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.pose = self.mp_pose.Pose(
-            min_detection_confidence=0.7,
-            min_tracking_confidence=0.7
-        )
-
-        # Set exercise type
-        self.exercise = exercise
-
-        # Thresholds for lunges
-        self.LUNGE_THRESHOLDS = {
-            "knee_angle": (75, 110),  # Front knee should be around 90 degrees
-            "back_knee_angle": (75, 120),  # Back knee angle
-            "torso_uprightness": (70, 110),  # Torso should be upright
-            "stance_width": (0.2, 0.6),  # Distance between feet (normalized)
-            "hip_level": (0, 0.15),  # Hip should be level (relative displacement)
-        }
-
-        # Recording and rep counting settings
-        self.fps = fps
-        self.delay_frames = delay_seconds * fps  # delay before correction
-        self.target_reps = target_reps  # Number of reps to detect
-        self.frame_count = 0
-        self.recording = False  # Now indicates correction active
-        self.report = {
-            "good_form_frames": 0,
-            "error_counts": defaultdict(int)
-        }
-
-        # Rep counting variables
-        self.reps = 0
-        self.in_lunge_position = False
-        self.lunge_depth_threshold = 0.05  # Threshold for detecting rep
-        self.prev_knee_angle = None
-        self.start_frame = 0
-        
-        # Depth tracking
-        self.max_knee_bend = 180
-        self.shallow_rep_detected = False
-        
-        # Track movement direction for better rep counting
-        self.knee_angles_history = []
-        self.direction = None  # 'down' or 'up'
-        self.phase_frames = 0
-        
-        # Visibility threshold for landmarks
-        self.visibility_threshold = 0.6
+    
 
     def calculate_angle(self, p1, p2, p3):
         """Calculate the angle between three points in degrees."""
@@ -489,9 +344,19 @@ class LungesAnalyzer:
         else:
             knee_past_toe = r_knee[0] > r_ankle[0]
             front_hip, front_knee, front_ankle = r_hip, r_knee, r_ankle
+
+        
         
         # Form checks - use thresholds from the LUNGE_THRESHOLDS dictionary
         min_knee_angle, max_knee_angle = self.LUNGE_THRESHOLDS["knee_angle"]
+
+        if front_knee_angle > 150:
+            self.standing_error_counter += 1
+            if self.standing_error_counter >= self.standing_error_threshold:
+                errors.append("Perform a full lunge.")
+        else:
+            self.standing_error_counter = 0
+            
         if front_knee_angle > max_knee_angle:
             errors.append("Bend front knee more")
         elif front_knee_angle < min_knee_angle:
@@ -506,19 +371,7 @@ class LungesAnalyzer:
         elif back_knee_angle < min_back_knee:
             errors.append("Back knee bent too much")
             
-        #min_torso, max_torso = self.LUNGE_THRESHOLDS["torso_uprightness"]
-        #if torso_angle < min_torso or torso_angle > max_torso:
-        #    errors.append("Keep torso upright")
-            
-       # _, max_hip_diff = self.LUNGE_THRESHOLDS["hip_level"]
-        #if hip_level_diff > max_hip_diff:
-         #   errors.append("Keep hips level")
-            
-        #min_stance, max_stance = self.LUNGE_THRESHOLDS["stance_width"]
-        #if stance_width < min_stance:
-         #   errors.append("Increase stance width")
-        #elif stance_width > max_stance:
-        #    errors.append("Reduce stance width")
+        
         
         # Track front knee angle for rep detection
         self.knee_angles_history.append(front_knee_angle)

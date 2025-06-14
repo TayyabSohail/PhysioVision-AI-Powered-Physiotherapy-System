@@ -104,40 +104,15 @@ class WarriorPoseAnalyzer:
                 else:
                     errors.append("Level your hips; right hip is too high.")
 
-        if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
-           not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
-            errors.append("Raise your arms to shoulder level." if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully.")
+        # if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
+        #    not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
+        #     errors.append("Raise your arms to shoulder level." if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully.")
+
+        l_arm_angle = self.calculate_angle(r_shoulder, l_shoulder, l_wrist)
+        r_arm_angle = self.calculate_angle(l_shoulder, r_shoulder, r_wrist)
+        errors.append("Raise your arms to shoulder level.")
 
         return errors[:3]
-
-    def generate_report(self):
-        """Generate and print an exercise report."""
-        total_recorded_frames = self.record_frames
-        good_form_seconds = self.report["good_form_frames"] / self.fps
-        total_seconds = total_recorded_frames / self.fps
-
-        print("\n--- Warrior II Exercise Report ---")
-        print(f"Total Recorded Time: {total_seconds:.2f} seconds")
-        print(f"Good Form Duration: {good_form_seconds:.2f} seconds ({(good_form_seconds / total_seconds) * 100:.1f}%)")
-        print("Errors Detected:")
-        if self.report["error_counts"]:
-            for error, count in self.report["error_counts"].items():
-                error_seconds = count / self.fps
-                print(f"  - '{error}': {count} frames ({error_seconds:.2f} seconds, {(count / total_recorded_frames) * 100:.1f}%)")
-        else:
-            print("  - No errors detected!")
-        print("--------------------------------\n")
-
-    def reset_counters(self):
-        """Reset frame counts and report metrics for a new session."""
-        self.frame_count = 0
-        self.recording = False
-        self.report = {
-            "good_form_frames": 0,
-            "error_counts": defaultdict(int)
-        }
-        print("Warrior pose analyzer counters reset")
-
 
     def generate_report(self):
         """Generate and return an exercise report."""
