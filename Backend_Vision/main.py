@@ -11,6 +11,7 @@ from WarriorPose import WarriorPoseAnalyzer
 from lunges_vision import LungesAnalyzer
 from legRaises import SLRExerciseAnalyzer 
 from bark_tts import play_speech_directly
+from asyncio import Queue, create_task
 
 
 # Configure logging
@@ -26,6 +27,9 @@ class VideoServer:
         self.running = False
         self.current_analyzer = None
         self.frame_processing_task = None
+
+        self.tts_queue = Queue()
+        self.tts_worker_task = None
 
         self.language=""
         self.audiobot = ""
@@ -52,7 +56,9 @@ class VideoServer:
             self.error_hold_start_time = None
             self.last_tts_time = 0
             self.tts_repeat_interval = 5.0
-            self.error_tts_cooldown = 2.0
+            self.error_tts_cooldown = 0.0
+
+            self.tts_worker_task = create_task(self._tts_worker())
 
             logger.info("Started processing frames")
             while self.running and self.cap.isOpened():
@@ -89,16 +95,16 @@ class VideoServer:
                                     time_since_last_tts >= self.tts_repeat_interval)):
                                     
                                     if self.audiobot != "off":
-                                        # Generate audio and send to frontend
-                                        tts_result = await play_speech_directly(error_text, self.language)
-                                        if tts_result["audio_data"]:
-                                            await self._broadcast({
-                                                "type": "audio",
-                                                "audio_data": tts_result["audio_data"]
-                                            })
-                                            self.last_tts_time = current_time
-                                        if tts_result["error"]:
-                                            logger.error(tts_result["error"])
+                                        while not self.tts_queue.empty():
+                                            try:
+                                                self.tts_queue.get_nowait()
+                                                self.tts_queue.task_done()
+                                            except asyncio.QueueEmpty:
+                                                break
+
+                                        await self.tts_queue.put(error_text)
+                                        self.last_tts_time = current_time
+
 
                             else:
                                 self.last_error_text = None
@@ -121,6 +127,14 @@ class VideoServer:
             if self.cap:
                 self.cap.release()
                 self.cap = None
+
+            if self.tts_worker_task:
+                self.tts_worker_task.cancel()
+                try:
+                    await self.tts_worker_task
+                except asyncio.CancelledError:
+                    pass
+
 
             if self.current_analyzer:
                 try:
@@ -147,6 +161,22 @@ class VideoServer:
         else:
             logger.warning(f"Unsupported language: {language_code}")
 
+    async def _tts_worker(self):
+        while True:
+            error_text = await self.tts_queue.get()
+            try:
+                tts_result = await play_speech_directly(error_text, self.language)
+                if tts_result["audio_data"]:
+                    await self._broadcast({
+                        "type": "audio",
+                        "audio_data": tts_result["audio_data"]
+                    })
+                if tts_result["error"]:
+                    logger.error(tts_result["error"])
+            except Exception as e:
+                logger.error(f"TTS worker error: {e}")
+            finally:
+                self.tts_queue.task_done()
 
     # async def process_frames(self, input_source=0):
     #     """Centralized frame processing loop."""

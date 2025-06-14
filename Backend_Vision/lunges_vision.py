@@ -18,6 +18,17 @@ class LungesAnalyzer:
             min_tracking_confidence=0.5
         )
         self.mp_drawing = mp.solutions.drawing_utils
+
+        self.error_counters = {
+            "Perform a full lunge.": 0,
+            "Bend front knee more": 0,
+            "Front knee bent too much": 0,
+            "Front knee past toes": 0,
+            "Bend back knee more": 0,
+            "Back knee bent too much": 0,
+        }
+        self.error_threshold = 5  # e.g., must persist for 5 frames
+
         
         # Initialize model components
         self.scaler = None
@@ -350,26 +361,47 @@ class LungesAnalyzer:
         # Form checks - use thresholds from the LUNGE_THRESHOLDS dictionary
         min_knee_angle, max_knee_angle = self.LUNGE_THRESHOLDS["knee_angle"]
 
+        # Persistent check for full lunge
         if front_knee_angle > 150:
-            self.standing_error_counter += 1
-            if self.standing_error_counter >= self.standing_error_threshold:
-                errors.append("Perform a full lunge.")
+            self.error_counters["Perform a full lunge."] += 1
         else:
-            self.standing_error_counter = 0
+            self.error_counters["Perform a full lunge."] = 0
+
+            # Front knee angle range errors
+            if front_knee_angle > max_knee_angle:
+                self.error_counters["Bend front knee more"] += 1
+            else:
+                self.error_counters["Bend front knee more"] = 0
+
+            if front_knee_angle < min_knee_angle:
+                self.error_counters["Front knee bent too much"] += 1
+            else:
+                self.error_counters["Front knee bent too much"] = 0
+
+            # Knee past toe
+            #if knee_past_toe:
+            #    self.error_counters["Front knee past toes"] += 1
+            #else:
+            #    self.error_counters["Front knee past toes"] = 0
+
+            # Back knee angle
+            min_back_knee, max_back_knee = self.LUNGE_THRESHOLDS["back_knee_angle"]
+            if back_knee_angle > max_back_knee:
+                self.error_counters["Bend back knee more"] += 1
+            else:
+                self.error_counters["Bend back knee more"] = 0
+
+            if back_knee_angle < min_back_knee:
+                self.error_counters["Back knee bent too much"] += 1
+            else:
+                self.error_counters["Back knee bent too much"] = 0
+
+        # Collect persistent errors only
+        for msg, count in self.error_counters.items():
+            if count >= self.error_threshold:
+                errors.append(msg)
             
-        if front_knee_angle > max_knee_angle:
-            errors.append("Bend front knee more")
-        elif front_knee_angle < min_knee_angle:
-            errors.append("Front knee bent too much")
-            
-        if knee_past_toe:
-            errors.append("Front knee past toes")
-            
-        min_back_knee, max_back_knee = self.LUNGE_THRESHOLDS["back_knee_angle"]
-        if back_knee_angle > max_back_knee:
-            errors.append("Bend back knee more")
-        elif back_knee_angle < min_back_knee:
-            errors.append("Back knee bent too much")
+        
             
         
         

@@ -19,7 +19,7 @@ class WarriorPoseAnalyzer:
             "back_leg_angle": (150, 180),
             "hip_orientation": (0, 30),
             "torso_angle": (0, 100),
-            "arm_angle": (160, 180),
+            "arm_angle": (155, 190),
             "shoulder_hip_alignment": (0, 40)
         }
 
@@ -83,8 +83,8 @@ class WarriorPoseAnalyzer:
             [(l_shoulder[0] + r_shoulder[0]) / 2, (l_shoulder[1] + r_shoulder[1]) / 2],
             [0, 1]
         )
-        l_arm_angle = self.calculate_angle(l_shoulder, l_elbow, l_wrist)
-        r_arm_angle = self.calculate_angle(r_shoulder, r_elbow, r_wrist)
+        #l_arm_angle = self.calculate_angle(l_shoulder, l_elbow, l_wrist)
+        #r_arm_angle = self.calculate_angle(r_shoulder, r_elbow, r_wrist)
         shoulder_hip_angle = self.calculate_angle(l_shoulder, r_shoulder, r_hip)
 
         if not self.THRESHOLDS["front_knee_angle"][0] <= front_knee_angle <= self.THRESHOLDS["front_knee_angle"][1]:
@@ -104,15 +104,27 @@ class WarriorPoseAnalyzer:
                 else:
                     errors.append("Level your hips; right hip is too high.")
 
-        # if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
-        #    not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
-        #     errors.append("Raise your arms to shoulder level." if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully.")
+        #if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
+        #   not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
+        #    errors.append("Raise your arms to shoulder level." if l_arm_angle < 170 or r_arm_angle < 170 else "Extend your arms fully.")
 
         l_arm_angle = self.calculate_angle(r_shoulder, l_shoulder, l_wrist)
         r_arm_angle = self.calculate_angle(l_shoulder, r_shoulder, r_wrist)
-        errors.append("Raise your arms to shoulder level.")
+        if not self.THRESHOLDS["arm_angle"][0] <= l_arm_angle <= self.THRESHOLDS["arm_angle"][1] or \
+           not self.THRESHOLDS["arm_angle"][0] <= r_arm_angle <= self.THRESHOLDS["arm_angle"][1]:
+            errors.append("Raise your arms to shoulder level.")
 
         return errors[:3]
+
+    def reset_counters(self):
+        """Reset frame counts and report metrics for a new session."""
+        self.frame_count = 0
+        self.recording = False
+        self.report = {
+            "good_form_frames": 0,
+            "error_counts": defaultdict(int)
+        }
+        print("Warrior pose analyzer counters reset")
 
     def generate_report(self):
         """Generate and return an exercise report."""

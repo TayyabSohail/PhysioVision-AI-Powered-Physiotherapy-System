@@ -1,12 +1,21 @@
+Squat Analysis Report - 2025-06-14 20:40:31
+==================================================
+Total Reps Performed: 3
 
---- Lunges Exercise Report ---
-Total Recorded Time: 3.53 seconds
-Good Form Duration: 0.00 seconds (0.0%)
-Repetitions Completed: 0/8
-
-Errors Detected:
-  - 'Move fully into camera view': 107 frames (3.57 seconds, 100.9%)
-
-Areas to Focus On:
-  - Practice proper form for: Move fully into camera view
---------------------------------
+Form Analysis:
+--------------------
+bad_back_round: 14 occurrences (7.4%)
+  - Your back is rounding.
+bad_back_warp: 41 occurrences (21.8%)
+  - Your back is excessively arched
+bad_head: 0 occurrences (0.0%)
+  - HKeep your neck aligned with your spine.
+bad_inner_thigh: 49 occurrences (26.1%)
+  - Keep knees aligned with toes.
+bad_shallow: 3 occurrences (1.6%)
+  - Squat is too shallow.
+bad_toe: 0 occurrences (0.0%)
+  - Keep feet shoulder-width apart.
+good: 81 occurrences (43.1%)
+  - Good form! Keep it up.
+==================================================

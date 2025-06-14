@@ -103,12 +103,12 @@ class SquatAnalyzer:
         
         # Error explanations
         self.error_explanations = {
-            'bad_back_round': "Your back is rounding. Keep your spine neutral.",
-            'bad_back_warp': "Your back is excessively arched. Maintain a neutral spine.",
-            'bad_head': "Head position incorrect. Look slightly downward, keeping your neck aligned with your spine.",
-            'bad_inner_thigh': "Knees collapsing inward. Keep knees aligned with toes.",
-            'bad_shallow': "Squat is too shallow. Try to go deeper with proper form.",
-            'bad_toe': "Foot positioning issue. Keep feet shoulder-width apart with toes slightly turned out.",
+            'bad_back_round': "Your back is rounding.",
+            'bad_back_warp': "Your back is excessively arched",
+            'bad_head': "HKeep your neck aligned with your spine.",
+            'bad_inner_thigh': "Keep knees aligned with toes.",
+            'bad_shallow': "Squat is too shallow.",
+            'bad_toe': "Keep feet shoulder-width apart.",
             'good': "Good form! Keep it up."
         }
 
