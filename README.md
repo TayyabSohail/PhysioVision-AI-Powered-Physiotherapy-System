@@ -22,6 +22,10 @@ With just your device camera, PhysioVision:
 
 ### Backed by up to 94% accuracy
 
+## 🎙️ Audio Correction Support 
+* Provides audio support for error correction using the microsoft Text-to-Speech (TTS) API
+* Provides MultiLanguage (Urdu) support using Google Translator API
+
 ## 🌐 Bilingual. Intelligent. Real-Time.
 PhysioVision isn’t just an app — it’s your AI physiotherapist, helping you recover smarter, faster, and safer.
 
@@ -61,7 +65,8 @@ https://github.com/user-attachments/assets/959479b5-4d65-41a7-a4ec-a0675ec4de9e
 https://github.com/user-attachments/assets/52766d32-4591-4575-a242-49d52bbdd829
 
 
-
+## AudioBot
+[Fyp_audiobot.webm](https://github.com/user-attachments/assets/e9bb517b-65ab-4906-9b2b-91700dd13d7c)
 
 
 ## Key Features:
